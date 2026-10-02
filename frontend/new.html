@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>New post</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <main>
+    <p><a href="/">All posts</a></p>
+    <div class="box">
+      <input id="title" class="field" type="text" placeholder="Header" maxlength="200">
+      <p>
+        <label><input type="radio" name="type" value="article" checked> Article</label>
+        <label><input type="radio" name="type" value="short"> Short</label>
+      </p>
+      <div id="body" class="field" contenteditable="true"></div>
+      <button id="publish" type="button">Publish</button>
+      <button id="logout" type="button">Log out</button>
+      <p id="status"></p>
+    </div>
+  </main>
+  <script type="module" src="/js/editor.js"></script>
+</body>
+</html>

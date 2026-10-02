@@ -1,0 +1,32 @@
+body {
+  margin: 0;
+  padding: 16px;
+}
+
+main {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.box {
+  border: 1px solid black;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.box img {
+  max-width: 100%;
+}
+
+.field {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  border: 1px solid black;
+  padding: 8px;
+  margin-bottom: 12px;
+}
+
+#body {
+  min-height: 300px;
+}
