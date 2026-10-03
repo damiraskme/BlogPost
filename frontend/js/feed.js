@@ -1,47 +1,111 @@
-import { listPosts, getSession, postUrl, formatDate } from "./api.js";
+import { listPosts, postUrl, formatDate } from "./api.js";
+import { shareLinks } from "./links.js";
+
+const SHORT_LINES = 15;
+const ARTICLE_LINES = 8;
+const MAX_THUMBS = 3;
 
 const list = document.getElementById("posts");
 const status = document.getElementById("status");
 
-function element(tag, text) {
+function element(tag, text, className) {
   const node = document.createElement(tag);
   if (text !== undefined) node.textContent = text;
+  if (className) node.className = className;
   return node;
 }
 
-function renderPost(post, authenticated) {
-  const box = element("div");
-  box.className = "box";
+function splitBody(html) {
+  const template = document.createElement("template");
+  template.innerHTML = html;
+  const content = template.content;
+  const sources = [];
+  for (const image of content.querySelectorAll("img")) {
+    const src = image.getAttribute("src");
+    if (src) sources.push(src);
+    let parent = image.parentNode;
+    image.remove();
+    while (parent && parent !== content && !parent.textContent.trim() && !parent.querySelector("img")) {
+      const next = parent.parentNode;
+      parent.remove();
+      parent = next;
+    }
+  }
+  return { content, sources };
+}
 
+function renderThumbs(sources, url) {
+  const thumbs = element("div", undefined, "thumbs");
+  for (const src of sources.slice(0, MAX_THUMBS)) {
+    const link = element("a");
+    link.href = url;
+    const image = element("img");
+    image.src = src;
+    image.alt = "";
+    link.append(image);
+    thumbs.append(link);
+  }
+  if (sources.length > MAX_THUMBS) {
+    const more = element("a", `+${sources.length - MAX_THUMBS}`);
+    more.href = url;
+    thumbs.append(more);
+  }
+  return thumbs;
+}
+
+function renderPost(post) {
+  const article = element("article", undefined, "post");
+  const url = postUrl(post.slug);
+  article.dataset.lines = post.type === "article" ? ARTICLE_LINES : SHORT_LINES;
+
+  const head = element("div", undefined, "post-head");
   if (post.title) {
     const heading = element("h2");
     const link = element("a", post.title);
-    link.href = postUrl(post.slug);
+    link.href = url;
     heading.append(link);
-    box.append(heading);
+    head.append(heading);
   }
+  head.append(element("span", formatDate(post.created_at), "date"), shareLinks(post));
 
-  if (post.type === "short") {
-    const body = element("div");
-    body.innerHTML = post.body;
-    box.append(body);
-  } else {
-    box.append(element("p", post.excerpt));
-    const more = element("a", "Read...");
-    more.href = postUrl(post.slug);
-    box.append(more);
+  const { content, sources } = splitBody(post.body);
+  const text = element("div", undefined, "post-body post-text");
+  text.append(content);
+  const wrapper = element("div", undefined, "post-content");
+  wrapper.append(text);
+  if (sources.length) {
+    article.classList.add("has-thumbs");
+    wrapper.append(renderThumbs(sources, url));
   }
+  const fade = element("div", undefined, "fade");
+  const read = element("a", "Read...", "read");
+  read.href = url;
+  fade.hidden = true;
+  read.hidden = true;
+  wrapper.append(fade, read);
 
-  box.append(element("p", formatDate(post.created_at)));
-  if (authenticated) box.append(element("button", "Edit"));
-  return box;
+  article.append(head, wrapper);
+  return article;
+}
+
+function clipPosts() {
+  for (const article of list.children) {
+    const text = article.querySelector(".post-text");
+    text.style.maxHeight = "";
+    const limit = Number(article.dataset.lines) * parseFloat(getComputedStyle(text).lineHeight);
+    const clipped = text.scrollHeight > limit + 1;
+    if (clipped) text.style.maxHeight = `${limit}px`;
+    article.querySelector(".fade").hidden = !clipped;
+    article.querySelector(".read").hidden = !clipped;
+  }
 }
 
 async function load() {
-  const [posts, session] = await Promise.all([listPosts(), getSession()]);
-  document.getElementById("admin").hidden = !session.authenticated;
+  const posts = await listPosts();
   if (!posts.length) status.textContent = "No posts yet.";
-  list.append(...posts.map((post) => renderPost(post, session.authenticated)));
+  list.append(...posts.filter((post) => !post.pending_delete).map(renderPost));
+  clipPosts();
+  window.addEventListener("resize", clipPosts);
 }
 
 load().catch((error) => {

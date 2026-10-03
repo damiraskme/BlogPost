@@ -14,16 +14,17 @@ const MAX_JSON_BYTES = 2 * 1024 * 1024;
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
 const PAGES = new Map([
-  ["/", "index.html"],
+  ["/blog", "blog.html"],
   ["/post", "post.html"],
   ["/login", "login.html"],
+  ["/posts", "posts.html"],
   ["/new", "new.html"],
   ["/settings", "settings.html"],
 ]);
 
-const ADMIN_PAGES = new Set(["/new", "/settings"]);
+const ADMIN_PAGES = new Set(["/posts", "/new", "/settings"]);
 
-const STATIC_PREFIXES = ["/css/", "/js/"];
+const STATIC_PREFIXES = ["/css/", "/js/", "/img/"];
 
 const MIME_TYPES = {
   ".html": "text/html; charset=utf-8",
@@ -32,6 +33,8 @@ const MIME_TYPES = {
   ".png": "image/png",
   ".jpg": "image/jpeg",
   ".webp": "image/webp",
+  ".jpeg": "image/jpeg",
+  ".svg": "image/svg+xml",
 };
 
 const IMAGE_EXTENSIONS = {
@@ -56,9 +59,43 @@ function escapeHtml(text) {
   return text.replace(/[&<>"']/g, (char) => `&#${char.charCodeAt(0)};`);
 }
 
-function publicPost(post) {
-  const { shares, ...rest } = post;
-  return rest;
+function viewPost(post, authenticated) {
+  const { shares, pending_delete, ...rest } = post;
+  const view = { ...rest, links: share.links(post) };
+  if (authenticated) Object.assign(view, { shares: shares || {}, pending_delete: Boolean(pending_delete) });
+  return view;
+}
+
+async function deletePost(req, res, slug) {
+  const post = store.getPost(slug);
+  if (!post) throw httpError(404, "Post not found");
+  const body = await readBody(req, MAX_JSON_BYTES);
+  let input = {};
+  try {
+    if (body.length) input = JSON.parse(body.toString("utf8")) || {};
+  } catch {
+    throw httpError(400, "Invalid JSON");
+  }
+
+  const shares = { ...post.shares };
+  let failed = false;
+  const networks = input.force === true || !Array.isArray(input.networks) ? [] : [...new Set(input.networks)];
+  for (const network of networks) {
+    const shared = shares[network];
+    if (!share.isLive(shared)) continue;
+    const outcome = await share.removeShare(network, shared);
+    const { delete_error, ...rest } = shared;
+    shares[network] = outcome.ok ? { ...rest, deleted: true } : { ...rest, delete_error: outcome.error };
+    if (!outcome.ok) failed = true;
+  }
+
+  if (failed) {
+    const updated = store.patchPost(post.id, { shares, pending_delete: true });
+    return sendJson(res, 200, { deleted: false, post: viewPost(updated, true) });
+  }
+  store.deletePost(slug);
+  removeUnused(store.usedBodies());
+  sendJson(res, 200, { deleted: true });
 }
 
 async function shareTo(req, post, networks) {
@@ -185,7 +222,9 @@ async function handleApi(req, res, pathname) {
     return sendJson(res, 200, { authenticated: false }, { "Set-Cookie": auth.clearedCookie() });
   }
   if (route === "GET /api/posts") {
-    return sendJson(res, 200, store.listPosts());
+    const authenticated = Boolean(auth.getSession(req));
+    const posts = store.listPosts().filter((post) => authenticated || !post.pending_delete);
+    return sendJson(res, 200, posts.map((post) => viewPost(post, authenticated)));
   }
   if (route === "POST /api/posts") {
     requireSession(req);
@@ -194,7 +233,7 @@ async function handleApi(req, res, pathname) {
     const post = store.createPost(input);
     if (Number.isInteger(input.draft_id)) store.deleteDraft(input.draft_id);
     removeUnused(store.usedBodies());
-    return sendJson(res, 201, await shareTo(req, post, [...new Set(networks)]));
+    return sendJson(res, 201, viewPost(await shareTo(req, post, [...new Set(networks)]), true));
   }
   if (route === "GET /api/drafts") {
     requireSession(req);
@@ -234,13 +273,38 @@ async function handleApi(req, res, pathname) {
     if (!post) throw httpError(404, "Post not found");
     const { network } = await readJson(req);
     if (!share.isAvailable(network)) throw httpError(400, "This network is not configured");
-    if (post.shares?.[network]?.ok) throw httpError(409, "Already shared");
-    return sendJson(res, 200, await shareTo(req, post, [network]));
+    if (share.isLive(post.shares?.[network])) throw httpError(409, "Already shared");
+    return sendJson(res, 200, viewPost(await shareTo(req, post, [network]), true));
+  }
+  if (req.method === "POST" && pathname.startsWith("/api/posts/") && pathname.endsWith("/unshare")) {
+    requireSession(req);
+    const post = store.getPost(pathname.slice("/api/posts/".length, -"/unshare".length));
+    if (!post) throw httpError(404, "Post not found");
+    const { network } = await readJson(req);
+    const shared = post.shares?.[network];
+    if (!share.isLive(shared)) throw httpError(409, "The post is not there");
+    const outcome = await share.removeShare(network, shared);
+    if (!outcome.ok) throw httpError(502, outcome.error);
+    return sendJson(res, 200, viewPost(store.setShare(post.id, network, { ...shared, deleted: true }), true));
+  }
+  if (req.method === "PUT" && pathname.startsWith("/api/posts/")) {
+    requireSession(req);
+    const input = await readJson(req);
+    const post = store.updatePost(pathname.slice("/api/posts/".length), input);
+    if (!post) throw httpError(404, "Post not found");
+    if (Number.isInteger(input.draft_id)) store.deleteDraft(input.draft_id);
+    removeUnused(store.usedBodies());
+    return sendJson(res, 200, viewPost(post, true));
+  }
+  if (req.method === "DELETE" && pathname.startsWith("/api/posts/")) {
+    requireSession(req);
+    return deletePost(req, res, pathname.slice("/api/posts/".length));
   }
   if (req.method === "GET" && pathname.startsWith("/api/posts/")) {
+    const authenticated = Boolean(auth.getSession(req));
     const post = store.getPost(pathname.slice("/api/posts/".length));
-    if (!post) throw httpError(404, "Post not found");
-    return sendJson(res, 200, auth.getSession(req) ? post : publicPost(post));
+    if (!post || (post.pending_delete && !authenticated)) throw httpError(404, "Post not found");
+    return sendJson(res, 200, viewPost(post, authenticated));
   }
   throw httpError(404, "Not found");
 }
@@ -248,7 +312,7 @@ async function handleApi(req, res, pathname) {
 function servePostPage(req, res, slug) {
   let html = fs.readFileSync(path.join(FRONTEND_DIR, "post.html"), "utf8");
   const post = slug ? store.getPost(slug) : null;
-  if (post) {
+  if (post && !post.pending_delete) {
     const title = post.title || post.excerpt.slice(0, 80);
     const image = firstImage(post.body);
     const meta = [
@@ -283,6 +347,10 @@ async function handle(req, res) {
   if (pathname.startsWith("/api/")) return handleApi(req, res, pathname);
   if (req.method !== "GET" && req.method !== "HEAD") throw httpError(405, "Method not allowed");
 
+  if (pathname === "/") {
+    res.writeHead(302, { Location: "/blog" });
+    return res.end();
+  }
   if (ADMIN_PAGES.has(pathname) && !auth.getSession(req)) {
     res.writeHead(302, { Location: "/login" });
     return res.end();

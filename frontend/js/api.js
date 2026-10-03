@@ -9,12 +9,28 @@ async function request(path, options) {
   return data;
 }
 
-function postJson(path, body) {
+function sendJson(method, path, body) {
   return request(path, {
-    method: "POST",
+    method,
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
+}
+
+function postJson(path, body) {
+  return sendJson("POST", path, body);
+}
+
+export function updatePost(slug, post) {
+  return sendJson("PUT", `/api/posts/${encodeURIComponent(slug)}`, post);
+}
+
+export function deletePost(slug, options) {
+  return sendJson("DELETE", `/api/posts/${encodeURIComponent(slug)}`, options);
+}
+
+export function editUrl(slug) {
+  return `/new?post=${encodeURIComponent(slug)}`;
 }
 
 export function listPosts() {
@@ -28,6 +44,40 @@ export function getPost(slug) {
 export function createPost(post) {
   return postJson("/api/posts", post);
 }
+
+export function sharePost(slug, network) {
+  return postJson(`/api/posts/${encodeURIComponent(slug)}/share`, { network });
+}
+
+export function unsharePost(slug, network) {
+  return postJson(`/api/posts/${encodeURIComponent(slug)}/unshare`, { network });
+}
+
+export function listDrafts() {
+  return request("/api/drafts");
+}
+
+export function getDraft(id) {
+  return request(`/api/drafts/${id}`);
+}
+
+export function saveDraft(draft) {
+  return postJson("/api/drafts", draft);
+}
+
+export function deleteDraft(id) {
+  return request(`/api/drafts/${id}`, { method: "DELETE" });
+}
+
+export function getSettings() {
+  return request("/api/settings");
+}
+
+export function saveSettings(settings) {
+  return postJson("/api/settings", settings);
+}
+
+export const NETWORK_NAMES = { telegram: "Telegram", linkedin: "LinkedIn" };
 
 export function uploadImage(file) {
   return request("/api/images", {
@@ -53,6 +103,10 @@ export function postUrl(slug) {
   return `/post?slug=${encodeURIComponent(slug)}`;
 }
 
+const DATE_FORMAT = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+
 export function formatDate(iso) {
-  return new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
+  const parts = DATE_FORMAT.formatToParts(new Date(iso));
+  const value = (type) => parts.find((part) => part.type === type).value;
+  return `${value("weekday")} ${value("day")} ${value("month")} ${value("year")}`;
 }

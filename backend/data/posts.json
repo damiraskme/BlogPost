@@ -1,156 +1,97 @@
 [
   {
     "id": 1,
-    "slug": "testing",
+    "slug": "test-1",
     "type": "article",
-    "title": "testing",
-    "body": "test1",
-    "excerpt": "test1",
-    "created_at": "2026-10-02T23:17:41.620Z",
+    "title": "Test 1",
+    "body": "Test",
+    "excerpt": "Test",
+    "created_at": "2026-10-03T21:36:37.330Z",
     "shares": {
       "telegram": {
-        "ok": false,
-        "at": "2026-10-02T23:17:41.621Z",
-        "error": "Telegram: Bad Request: WEBPAGE_URL_INVALID"
+        "ok": true,
+        "at": "2026-10-03T21:36:37.332Z",
+        "message_ids": [
+          8
+        ],
+        "chat_id": -1004414184762,
+        "chat_username": "damiraskmeblog"
       }
     }
   },
   {
     "id": 2,
-    "slug": "short-post-header",
-    "type": "short",
-    "title": "short post header",
-    "body": "test of short post",
-    "excerpt": "test of short post",
-    "created_at": "2026-10-02T23:18:32.283Z",
+    "slug": "test-2",
+    "type": "article",
+    "title": "Test 2",
+    "body": "Test",
+    "excerpt": "Test",
+    "created_at": "2026-10-03T21:36:48.717Z",
     "shares": {
       "telegram": {
         "ok": true,
-        "at": "2026-10-02T23:18:32.284Z",
+        "at": "2026-10-03T21:36:48.718Z",
         "message_ids": [
-          4
-        ]
+          9
+        ],
+        "chat_id": -1004414184762,
+        "chat_username": "damiraskmeblog"
       }
     }
   },
   {
     "id": 3,
-    "slug": "test",
-    "type": "short",
-    "title": "test",
-    "body": "test",
-    "excerpt": "test",
-    "created_at": "2026-10-03T00:13:58.642Z",
-    "shares": {
-      "telegram": {
-        "ok": true,
-        "at": "2026-10-03T00:13:58.643Z",
-        "message_ids": [
-          5
-        ]
-      },
-      "linkedin": {
-        "ok": false,
-        "at": "2026-10-03T00:17:37.681Z",
-        "error": "LinkedIn: Not enough permissions to access: userinfo.GET.NO_VERSION"
-      }
-    }
+    "slug": "short-article",
+    "type": "article",
+    "title": "Short Article",
+    "body": "Line<div>line</div><div>line</div><div>line</div><div><img src=\"/media/5ebf3862e5e1850e66bcf58958b47099.png\" alt=\"\"></div>",
+    "excerpt": "Line line line line",
+    "created_at": "2026-10-03T23:02:36.405Z",
+    "updated_at": "2026-10-03T23:02:55.226Z"
   },
   {
     "id": 4,
-    "slug": "test-4",
-    "type": "short",
-    "title": "test",
-    "body": "test",
-    "excerpt": "test",
-    "created_at": "2026-10-03T00:18:06.751Z",
+    "slug": "long-article",
+    "type": "article",
+    "title": "Long Article",
+    "body": "<div>Line</div><div>Line</div><div>Line</div><div>Line</div><div>Line</div><div>Line</div><div>Line</div><div>Line</div><div>Line</div><div>Line</div><div>LineLine</div><div>Line</div><div>Line</div><div>Line</div><div>Line</div><div><img src=\"/media/5ebf3862e5e1850e66bcf58958b47099.png\" alt=\"\"></div>",
+    "excerpt": "Line Line Line Line Line Line Line Line Line Line LineLine Line Line Line Line",
+    "created_at": "2026-10-03T23:03:34.593Z",
     "shares": {
-      "linkedin": {
-        "ok": false,
-        "at": "2026-10-03T00:18:06.752Z",
-        "error": "LinkedIn: Not enough permissions to access: userinfo.GET.NO_VERSION"
+      "telegram": {
+        "ok": true,
+        "at": "2026-10-03T23:03:34.594Z",
+        "message_ids": [
+          10
+        ],
+        "chat_id": -1004414184762,
+        "chat_username": "damiraskmeblog"
       }
     }
   },
   {
     "id": 5,
-    "slug": "test-5",
-    "type": "short",
-    "title": "test",
-    "body": "test",
-    "excerpt": "test",
-    "created_at": "2026-10-03T00:19:07.794Z",
-    "shares": {
-      "linkedin": {
-        "ok": false,
-        "at": "2026-10-03T00:19:33.544Z",
-        "error": "LinkedIn: the token cannot read your profile id; generate it with the openid and profile scopes, or set LINKEDIN_AUTHOR_URN"
-      }
-    }
-  },
-  {
-    "id": 6,
-    "slug": "test-6",
-    "type": "short",
-    "title": "test",
-    "body": "test",
-    "excerpt": "test",
-    "created_at": "2026-10-03T00:22:46.835Z",
-    "shares": {
-      "linkedin": {
-        "ok": false,
-        "at": "2026-10-03T00:23:02.168Z",
-        "error": "LinkedIn: ERROR :: /author :: Urn doesn't start with 'urn:'. Urn: https://www.linkedin.com/in/damirzh/ at index 0: https://www.linkedin.com/in/damirzh/\nERROR :: /author :: Urn doesn't start with 'urn:'. Urn: https://www.linkedin.com/in/damirzh/ at index 0: https://www.linkedin.com/in/damirzh/\n"
-      }
-    }
-  },
-  {
-    "id": 7,
-    "slug": "test-7",
-    "type": "short",
-    "title": "test",
-    "body": "test",
-    "excerpt": "test",
-    "created_at": "2026-10-03T00:23:12.752Z",
-    "shares": {
-      "linkedin": {
-        "ok": false,
-        "at": "2026-10-03T00:23:12.753Z",
-        "error": "LinkedIn: ERROR :: /author :: Urn doesn't start with 'urn:'. Urn: https://www.linkedin.com/in/damirzh/ at index 0: https://www.linkedin.com/in/damirzh/\nERROR :: /author :: Urn doesn't start with 'urn:'. Urn: https://www.linkedin.com/in/damirzh/ at index 0: https://www.linkedin.com/in/damirzh/\n"
-      }
-    }
-  },
-  {
-    "id": 8,
-    "slug": "test-8",
-    "type": "short",
-    "title": "test",
-    "body": "test",
-    "excerpt": "test",
-    "created_at": "2026-10-03T00:23:34.195Z",
-    "shares": {
-      "linkedin": {
-        "ok": true,
-        "at": "2026-10-03T00:25:17.499Z",
-        "post_id": "urn:li:share:7511944435945910272"
-      }
-    }
-  },
-  {
-    "id": 9,
-    "slug": "testing-draft",
+    "slug": "short-post",
     "type": "article",
-    "title": "Testing draft",
-    "body": "draft1",
-    "excerpt": "draft1",
-    "created_at": "2026-10-03T00:36:00.149Z",
+    "title": "Short post",
+    "body": "LineLineLine<div><img src=\"/media/5ebf3862e5e1850e66bcf58958b47099.png\" alt=\"\"><img src=\"/media/5ebf3862e5e1850e66bcf58958b47099.png\" alt=\"\"><img src=\"/media/5ebf3862e5e1850e66bcf58958b47099.png\" alt=\"\"><img src=\"/media/5ebf3862e5e1850e66bcf58958b47099.png\" alt=\"\"></div>",
+    "excerpt": "LineLineLine",
+    "created_at": "2026-10-03T23:04:10.234Z",
     "shares": {
       "telegram": {
         "ok": true,
-        "at": "2026-10-03T00:36:00.151Z",
+        "at": "2026-10-03T23:04:10.235Z",
         "message_ids": [
-          6
-        ]
+          11
+        ],
+        "chat_id": -1004414184762,
+        "chat_username": "damiraskmeblog"
+      },
+      "linkedin": {
+        "ok": true,
+        "at": "2026-10-03T23:10:18.481Z",
+        "post_id": "urn:li:share:7512287955118637056",
+        "note": "SITE_URL is not set, posted without a link"
       }
     }
   }

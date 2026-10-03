@@ -40,17 +40,18 @@ function previewOptions(setting, url) {
 }
 
 async function sendText(text, entities, preview) {
-  const ids = [];
+  const messages = [];
   for (const chunk of splitText(text, entities, MESSAGE_LIMIT)) {
-    const message = await call("sendMessage", {
-      chat_id: config().chatId,
-      text: chunk.text,
-      entities: chunk.entities,
-      link_preview_options: preview,
-    });
-    ids.push(message.message_id);
+    messages.push(
+      await call("sendMessage", {
+        chat_id: config().chatId,
+        text: chunk.text,
+        entities: chunk.entities,
+        link_preview_options: preview,
+      }),
+    );
   }
-  return ids;
+  return messages;
 }
 
 function captionFields(caption, above) {
@@ -65,8 +66,7 @@ async function sendPhoto(image, caption, above) {
   for (const [key, value] of Object.entries(captionFields(caption, above))) {
     form.append(key, typeof value === "string" ? value : JSON.stringify(value));
   }
-  const message = await call("sendPhoto", form);
-  return [message.message_id];
+  return [await call("sendPhoto", form)];
 }
 
 async function sendAlbum(images, caption, above) {
@@ -77,18 +77,47 @@ async function sendAlbum(images, caption, above) {
     return { type: "photo", media: `attach://photo${index}`, ...(index === 0 ? captionFields(caption, above) : {}) };
   });
   form.append("media", JSON.stringify(media));
-  const messages = await call("sendMediaGroup", form);
-  return messages.map((message) => message.message_id);
+  return call("sendMediaGroup", form);
 }
 
 async function sendImages(images, caption, above) {
-  const ids = [];
+  const messages = [];
   for (let start = 0; start < images.length; start += ALBUM_LIMIT) {
     const group = images.slice(start, start + ALBUM_LIMIT);
     const groupCaption = start === 0 ? caption : null;
-    ids.push(...(group.length === 1 ? await sendPhoto(group[0], groupCaption, above) : await sendAlbum(group, groupCaption, above)));
+    messages.push(...(group.length === 1 ? await sendPhoto(group[0], groupCaption, above) : await sendAlbum(group, groupCaption, above)));
   }
-  return ids;
+  return messages;
+}
+
+function summary(messages) {
+  const chat = messages[0]?.chat;
+  return {
+    message_ids: messages.map((message) => message.message_id),
+    chat_id: chat?.id,
+    chat_username: chat?.username,
+  };
+}
+
+function postUrl(result) {
+  const id = result.message_ids?.[0];
+  if (!id) return null;
+  const chat = String(result.chat_id ?? config().chatId ?? "");
+  const username = result.chat_username || (chat.startsWith("@") ? chat.slice(1) : null);
+  if (username) return `https://t.me/${username}/${id}`;
+  const internal = /^-100(\d+)$/.exec(chat);
+  return internal ? `https://t.me/c/${internal[1]}/${id}` : null;
+}
+
+async function remove(result) {
+  const chatId = result.chat_id ?? config().chatId;
+  for (const id of result.message_ids || []) {
+    try {
+      await call("deleteMessage", { chat_id: chatId, message_id: id });
+    } catch (error) {
+      if (!/message to delete not found/i.test(error.message)) throw error;
+    }
+  }
 }
 
 function instantViewLink(link) {
@@ -105,13 +134,13 @@ async function shareShort(post, link) {
   const above = template.captionAbove !== false;
   if (!files.length) {
     if (!text) throw new Error("Telegram: nothing to send");
-    return { message_ids: await sendText(text, entities, preview) };
+    return summary(await sendText(text, entities, preview));
   }
-  if (!text) return { message_ids: await sendImages(files, null, above) };
-  if (text.length <= CAPTION_LIMIT) return { message_ids: await sendImages(files, { text, entities }, above) };
-  const textIds = await sendText(text, entities, preview);
-  const imageIds = await sendImages(files, null, above);
-  return { message_ids: [...textIds, ...imageIds] };
+  if (!text) return summary(await sendImages(files, null, above));
+  if (text.length <= CAPTION_LIMIT) return summary(await sendImages(files, { text, entities }, above));
+  const textMessages = await sendText(text, entities, preview);
+  const imageMessages = await sendImages(files, null, above);
+  return summary([...textMessages, ...imageMessages]);
 }
 
 async function shareArticle(post, link) {
@@ -120,7 +149,7 @@ async function shareArticle(post, link) {
   const { text, entities } = renderTemplate(template.text, templateValues(post, template.locale, opened, link));
   if (!text) throw new Error("Telegram: the article template produced no text");
   const preview = opened ? previewOptions(template.preview, opened) : { is_disabled: true };
-  return { message_ids: await sendText(text, entities, preview) };
+  return summary(await sendText(text, entities, preview));
 }
 
-module.exports = { isConfigured, shareShort, shareArticle };
+module.exports = { isConfigured, shareShort, shareArticle, postUrl, remove };

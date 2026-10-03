@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Blog</title>
+  <title>Posts</title>
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
@@ -14,11 +14,20 @@
         <span class="nav-main"><span class="inactive">Home</span> | <span class="inactive">About</span> | <a href="/blog">Blog</a></span>
         <span id="admin-nav" class="nav-admin" hidden><a href="/posts">Posts</a> | <a href="/new">New</a></span>
       </nav>
-      <div id="post"></div>
+      <p><a href="/settings">Settings</a> · <button id="logout" type="button">Log out</button></p>
+      <div id="posts"></div>
       <p id="status"></p>
     </main>
   </div>
+  <dialog id="delete-dialog">
+    <form method="dialog">
+      <p id="delete-text"></p>
+      <div id="delete-networks"></div>
+      <button value="cancel">Cancel</button>
+      <button value="confirm">Delete</button>
+    </form>
+  </dialog>
   <script type="module" src="/js/nav.js"></script>
-  <script type="module" src="/js/post.js"></script>
+  <script type="module" src="/js/posts.js"></script>
 </body>
 </html>

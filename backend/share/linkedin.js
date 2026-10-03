@@ -151,4 +151,17 @@ async function shareArticle(post, link) {
   return { post_id: await createPost(author, escapeText(text), content), note: notes.join("; ") || undefined };
 }
 
-module.exports = { isConfigured, shareShort, shareArticle };
+function postUrl(result) {
+  return result.post_id ? `https://www.linkedin.com/feed/update/${result.post_id}/` : null;
+}
+
+async function remove(result) {
+  if (!result.post_id) return;
+  const response = await fetch(`${API_URL}/rest/posts/${encodeURIComponent(result.post_id)}`, {
+    method: "DELETE",
+    headers: headers({ "X-RestLi-Method": "DELETE" }),
+  });
+  if (response.status !== 404) await check(response);
+}
+
+module.exports = { isConfigured, shareShort, shareArticle, postUrl, remove };

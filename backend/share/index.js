@@ -22,4 +22,27 @@ async function sharePost(post, name, link) {
   }
 }
 
-module.exports = { available, isAvailable, sharePost };
+function isLive(result) {
+  return Boolean(result?.ok && !result.deleted);
+}
+
+function links(post) {
+  const result = {};
+  for (const name of Object.keys(NETWORKS)) {
+    const shared = post.shares?.[name];
+    result[name] = isLive(shared) ? NETWORKS[name].postUrl(shared) : null;
+  }
+  return result;
+}
+
+async function removeShare(name, result) {
+  if (!isAvailable(name)) return { ok: false, error: `${name} is not configured in .env` };
+  try {
+    await NETWORKS[name].remove(result);
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: error.message };
+  }
+}
+
+module.exports = { available, isAvailable, sharePost, isLive, links, removeShare };

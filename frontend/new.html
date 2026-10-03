@@ -7,20 +7,35 @@
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-  <main>
-    <p><a href="/">All posts</a></p>
-    <div class="box">
-      <input id="title" class="field" type="text" placeholder="Header" maxlength="200">
-      <p>
-        <label><input type="radio" name="type" value="article" checked> Article</label>
-        <label><input type="radio" name="type" value="short"> Short</label>
-      </p>
-      <div id="body" class="field" contenteditable="true"></div>
-      <button id="publish" type="button">Publish</button>
-      <button id="logout" type="button">Log out</button>
-      <p id="status"></p>
-    </div>
-  </main>
+  <div class="page">
+    <div class="banner"></div>
+    <main class="main">
+      <nav class="nav">
+        <span class="nav-main"><span class="inactive">Home</span> | <span class="inactive">About</span> | <a href="/blog">Blog</a></span>
+        <span id="admin-nav" class="nav-admin" hidden><a href="/posts">Posts</a> | <a href="/new">New</a></span>
+      </nav>
+      <div id="drafts" class="box" hidden>
+        <h2 id="drafts-title">Drafts</h2>
+        <div id="draft-list"></div>
+      </div>
+      <div class="box">
+        <p id="mode"></p>
+        <input id="title" class="field" type="text" placeholder="Header" maxlength="200">
+        <p>
+          <label><input type="radio" name="type" value="article" checked> Article</label>
+          <label><input type="radio" name="type" value="short"> Short</label>
+        </p>
+        <div id="body" class="field post-body" contenteditable="true"></div>
+        <p id="networks"></p>
+        <div id="post-networks"></div>
+        <button id="publish" type="button">Publish</button>
+        <button id="save-draft" type="button">Save draft</button>
+        <button id="logout" type="button">Log out</button>
+        <p id="status"></p>
+      </div>
+    </main>
+  </div>
+  <script type="module" src="/js/nav.js"></script>
   <script type="module" src="/js/editor.js"></script>
 </body>
 </html>
