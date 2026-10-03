@@ -4,10 +4,10 @@
   "private": true,
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
+    "start": "node --env-file-if-exists=.env server.js",
     "set-password": "node scripts/set-password.js"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=22.9"
   }
 }

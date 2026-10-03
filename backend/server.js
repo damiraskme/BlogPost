@@ -4,10 +4,12 @@ const path = require("path");
 const crypto = require("crypto");
 const auth = require("./auth");
 const store = require("./store");
+const share = require("./share");
+const { firstImage } = require("./share/content");
+const { MEDIA_DIR, removeUnused } = require("./media");
 
 const PORT = Number(process.env.PORT) || 3000;
 const FRONTEND_DIR = path.join(__dirname, "..", "frontend");
-const MEDIA_DIR = path.join(__dirname, "media");
 const MAX_JSON_BYTES = 2 * 1024 * 1024;
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
@@ -16,7 +18,10 @@ const PAGES = new Map([
   ["/post", "post.html"],
   ["/login", "login.html"],
   ["/new", "new.html"],
+  ["/settings", "settings.html"],
 ]);
+
+const ADMIN_PAGES = new Set(["/new", "/settings"]);
 
 const STATIC_PREFIXES = ["/css/", "/js/"];
 
@@ -37,6 +42,33 @@ const IMAGE_EXTENSIONS = {
 
 function httpError(status, detail) {
   return Object.assign(new Error(detail), { status });
+}
+
+function siteUrl(req) {
+  return (process.env.SITE_URL || `http://${req.headers.host}`).replace(/\/+$/, "");
+}
+
+function postLink(req, post) {
+  return `${siteUrl(req)}/post?slug=${encodeURIComponent(post.slug)}`;
+}
+
+function escapeHtml(text) {
+  return text.replace(/[&<>"']/g, (char) => `&#${char.charCodeAt(0)};`);
+}
+
+function publicPost(post) {
+  const { shares, ...rest } = post;
+  return rest;
+}
+
+async function shareTo(req, post, networks) {
+  let current = post;
+  for (const network of networks) {
+    const link = process.env.SITE_URL ? postLink(req, current) : null;
+    const result = await share.sharePost(current, network, link);
+    current = store.setShare(current.id, network, result);
+  }
+  return current;
 }
 
 function sendJson(res, status, data, headers = {}) {
@@ -129,18 +161,21 @@ async function handleImageUpload(req, res) {
   const buffer = await readBody(req, MAX_IMAGE_BYTES);
   const actual = detectImageType(buffer);
   if (!actual) throw httpError(415, "Only PNG, JPEG and WebP images are supported");
-  const name = crypto.randomBytes(16).toString("hex") + IMAGE_EXTENSIONS[actual];
+  const hash = crypto.createHash("sha256").update(buffer).digest("hex").slice(0, 32);
+  const name = hash + IMAGE_EXTENSIONS[actual];
+  const filePath = path.join(MEDIA_DIR, name);
   fs.mkdirSync(MEDIA_DIR, { recursive: true });
-  fs.writeFileSync(path.join(MEDIA_DIR, name), buffer);
+  if (!fs.existsSync(filePath)) fs.writeFileSync(filePath, buffer);
   sendJson(res, 201, { url: `/media/${name}` });
 }
 
 async function handleApi(req, res, pathname) {
   const route = `${req.method} ${pathname}`;
-  if (req.method === "POST") requireSameOrigin(req);
+  if (req.method !== "GET" && req.method !== "HEAD") requireSameOrigin(req);
 
   if (route === "GET /api/session") {
-    return sendJson(res, 200, { authenticated: Boolean(auth.getSession(req)) });
+    const authenticated = Boolean(auth.getSession(req));
+    return sendJson(res, 200, { authenticated, networks: authenticated ? share.available() : [] });
   }
   if (route === "POST /api/login") {
     return handleLogin(req, res);
@@ -154,24 +189,93 @@ async function handleApi(req, res, pathname) {
   }
   if (route === "POST /api/posts") {
     requireSession(req);
-    return sendJson(res, 201, store.createPost(await readJson(req)));
+    const input = await readJson(req);
+    const networks = Array.isArray(input?.share) ? input.share.filter(share.isAvailable) : [];
+    const post = store.createPost(input);
+    if (Number.isInteger(input.draft_id)) store.deleteDraft(input.draft_id);
+    removeUnused(store.usedBodies());
+    return sendJson(res, 201, await shareTo(req, post, [...new Set(networks)]));
+  }
+  if (route === "GET /api/drafts") {
+    requireSession(req);
+    return sendJson(res, 200, store.listDrafts());
+  }
+  if (route === "POST /api/drafts") {
+    requireSession(req);
+    return sendJson(res, 200, store.saveDraft(await readJson(req)));
+  }
+  if (pathname.startsWith("/api/drafts/") && (req.method === "GET" || req.method === "DELETE")) {
+    requireSession(req);
+    const id = Number(pathname.slice("/api/drafts/".length));
+    if (req.method === "DELETE") {
+      if (!store.deleteDraft(id)) throw httpError(404, "Draft not found");
+      removeUnused(store.usedBodies());
+      return sendJson(res, 200, { deleted: true });
+    }
+    const draft = store.getDraft(id);
+    if (!draft) throw httpError(404, "Draft not found");
+    return sendJson(res, 200, draft);
+  }
+  if (route === "GET /api/settings") {
+    requireSession(req);
+    return sendJson(res, 200, store.getSettings());
+  }
+  if (route === "POST /api/settings") {
+    requireSession(req);
+    return sendJson(res, 200, store.saveSettings(await readJson(req)));
   }
   if (route === "POST /api/images") {
     requireSession(req);
     return handleImageUpload(req, res);
   }
+  if (req.method === "POST" && pathname.startsWith("/api/posts/") && pathname.endsWith("/share")) {
+    requireSession(req);
+    const post = store.getPost(pathname.slice("/api/posts/".length, -"/share".length));
+    if (!post) throw httpError(404, "Post not found");
+    const { network } = await readJson(req);
+    if (!share.isAvailable(network)) throw httpError(400, "This network is not configured");
+    if (post.shares?.[network]?.ok) throw httpError(409, "Already shared");
+    return sendJson(res, 200, await shareTo(req, post, [network]));
+  }
   if (req.method === "GET" && pathname.startsWith("/api/posts/")) {
     const post = store.getPost(pathname.slice("/api/posts/".length));
     if (!post) throw httpError(404, "Post not found");
-    return sendJson(res, 200, post);
+    return sendJson(res, 200, auth.getSession(req) ? post : publicPost(post));
   }
   throw httpError(404, "Not found");
 }
 
+function servePostPage(req, res, slug) {
+  let html = fs.readFileSync(path.join(FRONTEND_DIR, "post.html"), "utf8");
+  const post = slug ? store.getPost(slug) : null;
+  if (post) {
+    const title = post.title || post.excerpt.slice(0, 80);
+    const image = firstImage(post.body);
+    const meta = [
+      ["og:type", "article"],
+      ["og:title", title],
+      ["og:description", post.excerpt],
+      ["og:url", postLink(req, post)],
+    ];
+    if (image?.startsWith("/media/")) meta.push(["og:image", siteUrl(req) + image]);
+    const tags = meta.map(([property, content]) => `  <meta property="${property}" content="${escapeHtml(content)}">`);
+    tags.push(`  <meta name="description" content="${escapeHtml(post.excerpt)}">`);
+    tags.push(`  <meta name="twitter:card" content="${image ? "summary_large_image" : "summary"}">`);
+    html = html
+      .replace(/<title>[^<]*<\/title>/, `<title>${escapeHtml(title)}</title>`)
+      .replace("</head>", `${tags.join("\n")}\n</head>`);
+  }
+  const body = Buffer.from(html);
+  res.writeHead(200, { "Content-Type": MIME_TYPES[".html"], "Content-Length": body.length });
+  res.end(req.method === "HEAD" ? undefined : body);
+}
+
 async function handle(req, res) {
+  let url;
   let pathname;
   try {
-    pathname = decodeURIComponent(new URL(req.url, "http://localhost").pathname);
+    url = new URL(req.url, "http://localhost");
+    pathname = decodeURIComponent(url.pathname);
   } catch {
     throw httpError(400, "Bad request");
   }
@@ -179,10 +283,11 @@ async function handle(req, res) {
   if (pathname.startsWith("/api/")) return handleApi(req, res, pathname);
   if (req.method !== "GET" && req.method !== "HEAD") throw httpError(405, "Method not allowed");
 
-  if (pathname === "/new" && !auth.getSession(req)) {
+  if (ADMIN_PAGES.has(pathname) && !auth.getSession(req)) {
     res.writeHead(302, { Location: "/login" });
     return res.end();
   }
+  if (pathname === "/post") return servePostPage(req, res, url.searchParams.get("slug"));
   if (PAGES.has(pathname)) return serveFile(req, res, FRONTEND_DIR, PAGES.get(pathname));
   if (STATIC_PREFIXES.some((prefix) => pathname.startsWith(prefix))) return serveFile(req, res, FRONTEND_DIR, pathname);
   if (pathname.startsWith("/media/")) return serveFile(req, res, MEDIA_DIR, pathname.slice("/media".length));
@@ -190,7 +295,7 @@ async function handle(req, res) {
 }
 
 const server = http.createServer((req, res) => {
-  res.setHeader("Content-Security-Policy", "default-src 'self'; img-src 'self'");
+  res.setHeader("Content-Security-Policy", "default-src 'self'; img-src 'self' blob:");
   res.setHeader("X-Content-Type-Options", "nosniff");
   handle(req, res).catch((error) => {
     const status = error.status || 500;
@@ -203,4 +308,5 @@ const server = http.createServer((req, res) => {
 server.listen(PORT, () => {
   console.log(`Listening on http://localhost:${PORT}`);
   if (!auth.hasCredentials()) console.log("No admin account yet. Run: npm run set-password");
+  console.log(`Sharing to: ${share.available().join(", ") || "nothing configured"}`);
 });

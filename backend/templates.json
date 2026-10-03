@@ -1,0 +1,22 @@
+{
+  "locale": "en-US",
+  "telegram": {
+    "short": {
+      "text": "{?title}<b>{title}</b>\n\n{/title}{body}",
+      "preview": true,
+      "captionAbove": true
+    },
+    "article": {
+      "text": "<b>{title}</b>\n<i>{date}</i>\n\n{?link}<a href=\"{link}\">Read the post →</a>{/link}",
+      "preview": { "large": true, "above": false }
+    }
+  },
+  "linkedin": {
+    "short": {
+      "text": "{?title}<b>{title}</b>\n\n{/title}{body}"
+    },
+    "article": {
+      "text": "<b>{title}</b>\n\n{excerpt}"
+    }
+  }
+}

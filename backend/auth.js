@@ -3,13 +3,33 @@ const path = require("path");
 const crypto = require("crypto");
 
 const ADMIN_FILE = path.join(__dirname, "data", "admin.json");
+const SESSIONS_FILE = path.join(__dirname, "data", "sessions.json");
 const COOKIE_NAME = "sid";
-const SESSION_SECONDS = 7 * 24 * 60 * 60;
+const SESSION_SECONDS = 30 * 24 * 60 * 60;
 const MAX_FAILURES = 5;
 const LOCKOUT_MS = 15 * 60 * 1000;
 
-const sessions = new Map();
+const sessions = loadSessions();
 const failures = new Map();
+
+function loadSessions() {
+  try {
+    const now = Date.now();
+    const entries = Object.entries(JSON.parse(fs.readFileSync(SESSIONS_FILE, "utf8")));
+    return new Map(entries.filter(([, expires]) => expires > now));
+  } catch {
+    return new Map();
+  }
+}
+
+function saveSessions() {
+  fs.mkdirSync(path.dirname(SESSIONS_FILE), { recursive: true });
+  fs.writeFileSync(SESSIONS_FILE, JSON.stringify(Object.fromEntries(sessions), null, 2));
+}
+
+function tokenKey(token) {
+  return crypto.createHash("sha256").update(token).digest("hex");
+}
 
 function hashPassword(password, salt) {
   return crypto.scryptSync(password, salt, 64);
@@ -76,7 +96,8 @@ function login(ip, username, password) {
   }
   failures.delete(ip);
   const token = crypto.randomBytes(32).toString("hex");
-  sessions.set(token, Date.now() + SESSION_SECONDS * 1000);
+  sessions.set(tokenKey(token), Date.now() + SESSION_SECONDS * 1000);
+  saveSessions();
   return { ok: true, token };
 }
 
@@ -93,18 +114,22 @@ function parseCookies(header) {
 function getSession(req) {
   const token = parseCookies(req.headers.cookie)[COOKIE_NAME];
   if (!token) return null;
-  const expires = sessions.get(token);
+  const key = tokenKey(token);
+  const expires = sessions.get(key);
   if (!expires) return null;
   if (expires <= Date.now()) {
-    sessions.delete(token);
+    sessions.delete(key);
+    saveSessions();
     return null;
   }
-  return token;
+  return key;
 }
 
 function logout(req) {
-  const token = getSession(req);
-  if (token) sessions.delete(token);
+  const key = getSession(req);
+  if (!key) return;
+  sessions.delete(key);
+  saveSessions();
 }
 
 function sessionCookie(token) {
