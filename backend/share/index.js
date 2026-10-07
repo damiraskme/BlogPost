@@ -45,4 +45,13 @@ async function removeShare(name, result) {
   }
 }
 
-module.exports = { available, isAvailable, sharePost, isLive, links, removeShare };
+async function checkShare(name, result) {
+  if (!isAvailable(name)) return { state: "unknown", reason: `${name} is not configured in .env` };
+  try {
+    return { state: (await NETWORKS[name].exists(result)) ? "exists" : "gone" };
+  } catch (error) {
+    return { state: "unknown", reason: error.message };
+  }
+}
+
+module.exports = { available, isAvailable, sharePost, isLive, links, removeShare, checkShare };

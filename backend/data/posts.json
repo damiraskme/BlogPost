@@ -94,5 +94,14 @@
         "note": "SITE_URL is not set, posted without a link"
       }
     }
+  },
+  {
+    "id": 6,
+    "slug": "sadasd",
+    "type": "article",
+    "title": "sadasd",
+    "body": "sdadad",
+    "excerpt": "sdadad",
+    "created_at": "2026-10-07T20:03:33.968Z"
   }
 ]

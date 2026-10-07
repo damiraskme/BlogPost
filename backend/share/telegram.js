@@ -152,4 +152,18 @@ async function shareArticle(post, link) {
   return summary(await sendText(text, entities, preview));
 }
 
-module.exports = { isConfigured, shareShort, shareArticle, postUrl, remove };
+async function exists(result) {
+  const chatId = result.chat_id ?? config().chatId;
+  for (const id of result.message_ids || []) {
+    try {
+      await call("editMessageReplyMarkup", { chat_id: chatId, message_id: id });
+      return true;
+    } catch (error) {
+      if (/message is not modified/i.test(error.message)) return true;
+      if (!/message to edit not found/i.test(error.message)) throw error;
+    }
+  }
+  return false;
+}
+
+module.exports = { isConfigured, shareShort, shareArticle, postUrl, remove, exists };

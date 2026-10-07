@@ -1,6 +1,6 @@
 {
   "share": {
-    "telegram": true,
+    "telegram": false,
     "linkedin": false
   }
 }

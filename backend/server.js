@@ -12,6 +12,8 @@ const PORT = Number(process.env.PORT) || 3000;
 const FRONTEND_DIR = path.join(__dirname, "..", "frontend");
 const MAX_JSON_BYTES = 2 * 1024 * 1024;
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const VERIFY_WORKERS = 4;
+const PAGE_SIZE = 5;
 
 const PAGES = new Map([
   ["/blog", "blog.html"],
@@ -64,6 +66,32 @@ function viewPost(post, authenticated) {
   const view = { ...rest, links: share.links(post) };
   if (authenticated) Object.assign(view, { shares: shares || {}, pending_delete: Boolean(pending_delete) });
   return view;
+}
+
+async function verifyShares() {
+  const tasks = [];
+  for (const post of store.listPosts()) {
+    for (const [network, shared] of Object.entries(post.shares || {})) {
+      if (share.isLive(shared)) tasks.push({ id: post.id, network, shared });
+    }
+  }
+
+  const unverified = {};
+  let next = 0;
+  const worker = async () => {
+    while (next < tasks.length) {
+      const task = tasks[next];
+      next += 1;
+      const outcome = await share.checkShare(task.network, task.shared);
+      if (outcome.state === "unknown") unverified[task.network] = outcome.reason;
+      if (outcome.state === "gone") {
+        const { delete_error, ...rest } = task.shared;
+        store.setShare(task.id, task.network, { ...rest, deleted: true });
+      }
+    }
+  };
+  await Promise.all(Array.from({ length: VERIFY_WORKERS }, worker));
+  return unverified;
 }
 
 async function deletePost(req, res, slug) {
@@ -206,7 +234,7 @@ async function handleImageUpload(req, res) {
   sendJson(res, 201, { url: `/media/${name}` });
 }
 
-async function handleApi(req, res, pathname) {
+async function handleApi(req, res, pathname, query) {
   const route = `${req.method} ${pathname}`;
   if (req.method !== "GET" && req.method !== "HEAD") requireSameOrigin(req);
 
@@ -223,8 +251,20 @@ async function handleApi(req, res, pathname) {
   }
   if (route === "GET /api/posts") {
     const authenticated = Boolean(auth.getSession(req));
+    if (query.has("page")) {
+      const visible = store.listPosts().filter((post) => !post.pending_delete);
+      const pages = Math.max(1, Math.ceil(visible.length / PAGE_SIZE));
+      const page = Math.min(pages, Math.max(1, parseInt(query.get("page"), 10) || 1));
+      const posts = visible.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+      return sendJson(res, 200, { posts: posts.map((post) => viewPost(post, authenticated)), page, pages });
+    }
     const posts = store.listPosts().filter((post) => authenticated || !post.pending_delete);
     return sendJson(res, 200, posts.map((post) => viewPost(post, authenticated)));
+  }
+  if (route === "POST /api/posts/verify") {
+    requireSession(req);
+    const unverified = await verifyShares();
+    return sendJson(res, 200, { posts: store.listPosts().map((post) => viewPost(post, true)), unverified });
   }
   if (route === "POST /api/posts") {
     requireSession(req);
@@ -344,7 +384,7 @@ async function handle(req, res) {
     throw httpError(400, "Bad request");
   }
 
-  if (pathname.startsWith("/api/")) return handleApi(req, res, pathname);
+  if (pathname.startsWith("/api/")) return handleApi(req, res, pathname, url.searchParams);
   if (req.method !== "GET" && req.method !== "HEAD") throw httpError(405, "Method not allowed");
 
   if (pathname === "/") {

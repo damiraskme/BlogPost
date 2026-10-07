@@ -164,4 +164,13 @@ async function remove(result) {
   if (response.status !== 404) await check(response);
 }
 
-module.exports = { isConfigured, shareShort, shareArticle, postUrl, remove };
+async function exists(result) {
+  if (!result.post_id) return false;
+  const response = await fetch(`${API_URL}/rest/posts/${encodeURIComponent(result.post_id)}`, { headers: headers() });
+  if (response.status === 404) return false;
+  if (response.status === 403) throw new Error("LinkedIn does not let this token read posts, so it cannot be checked");
+  await check(response);
+  return true;
+}
+
+module.exports = { isConfigured, shareShort, shareArticle, postUrl, remove, exists };
