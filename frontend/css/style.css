@@ -382,3 +382,150 @@ button.danger,
     min-height: 0;
   }
 }
+
+.home {
+  --home-page: #333333;
+  --home-panel: #c9ad8c;
+  --home-post: #8f3232;
+  padding: 40px 28px;
+  background: var(--home-page);
+}
+
+.home-page {
+  display: grid;
+  grid-template-columns: 230px 1fr;
+  gap: 32px 64px;
+  max-width: 1200px;
+  margin: 0 auto;
+  align-items: start;
+}
+
+.home-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  min-height: 40px;
+  line-height: 1;
+  color: white;
+}
+
+.home-nav a {
+  color: inherit;
+}
+
+.home-side,
+.home-main {
+  display: grid;
+  gap: 32px;
+  min-width: 0;
+}
+
+.panel {
+  padding: 16px 18px;
+  background: var(--home-panel);
+}
+
+.panel h2 {
+  margin: 0 0 10px;
+  font-size: 1.05em;
+  font-weight: normal;
+}
+
+.panel a {
+  color: inherit;
+}
+
+.home-recent {
+  min-height: 280px;
+}
+
+.recent-item {
+  margin: 0 0 12px;
+}
+
+.recent-item .date {
+  display: block;
+}
+
+.home-github {
+  min-height: 90px;
+}
+
+.home-links {
+  min-height: 220px;
+}
+
+.home-about {
+  min-height: 200px;
+}
+
+.home-posts-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.home-post {
+  --page-background: var(--home-post);
+  display: flex;
+  height: 250px;
+  margin: 0 64px 28px 28px;
+  padding: 24px 28px;
+  box-sizing: border-box;
+  overflow: hidden;
+  background: var(--home-post);
+  color: white;
+}
+
+.home-post a {
+  color: inherit;
+}
+
+.home-post-images {
+  flex: 0 1000 210px;
+  min-width: 0;
+  margin-right: 14px;
+  border-right: 3px solid rgba(255, 255, 255, 0.8);
+  padding-right: 14px;
+}
+
+.home-post-images .thumbs-wrap {
+  margin-top: 0;
+}
+
+.home-post-images .thumbs img {
+  width: 170px;
+  height: 196px;
+}
+
+.home-post-text {
+  flex: 1 1 320px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.home-posts {
+  container-type: inline-size;
+}
+
+@container (max-width: 560px) {
+  .home-post-images {
+    display: none;
+  }
+}
+
+.home-post-text h3 {
+  margin: 0 0 14px;
+  font-size: 1.05em;
+  font-weight: normal;
+}
+
+@media (max-width: 760px) {
+  .home-page {
+    grid-template-columns: 1fr;
+  }
+
+  .home-post {
+    margin: 0 0 20px;
+  }
+}

@@ -1,6 +1,6 @@
 import { listPage, postUrl, formatDate } from "./api.js";
 import { shareLinks } from "./links.js";
-import { openLightbox } from "./lightbox.js";
+import { splitBody, imageStrip, updateStrip } from "./strip.js";
 
 const SHORT_LINES = 15;
 const ARTICLE_LINES = 8;
@@ -14,78 +14,6 @@ function element(tag, text, className) {
   if (text !== undefined) node.textContent = text;
   if (className) node.className = className;
   return node;
-}
-
-function splitBody(html) {
-  const template = document.createElement("template");
-  template.innerHTML = html;
-  const content = template.content;
-  const sources = [];
-  for (const image of content.querySelectorAll("img")) {
-    const src = image.getAttribute("src");
-    if (src) sources.push(src);
-    let parent = image.parentNode;
-    image.remove();
-    while (parent && parent !== content && !parent.textContent.trim() && !parent.querySelector("img")) {
-      const next = parent.parentNode;
-      parent.remove();
-      parent = next;
-    }
-  }
-  return { content, sources };
-}
-
-function imageLink(sources, position, url) {
-  const link = element("a");
-  link.href = url;
-  link.addEventListener("click", (event) => {
-    if (link.closest(".post").classList.contains("clipped")) return;
-    event.preventDefault();
-    openLightbox(sources, position);
-  });
-  return link;
-}
-
-function renderThumbs(sources, url) {
-  const thumbs = element("div", undefined, "thumbs");
-  sources.slice(0, MAX_THUMBS).forEach((src, position) => {
-    const link = imageLink(sources, position, url);
-    const image = element("img");
-    image.src = src;
-    image.alt = "";
-    link.append(image);
-    thumbs.append(link);
-  });
-  if (sources.length > MAX_THUMBS) {
-    const more = imageLink(sources, MAX_THUMBS, url);
-    more.textContent = `+${sources.length - MAX_THUMBS}`;
-    thumbs.append(more);
-  }
-
-  const wrap = element("div", undefined, "thumbs-wrap");
-  const left = element("button", "‹", "thumb-arrow left");
-  const right = element("button", "›", "thumb-arrow right");
-  for (const [button, direction] of [[left, -1], [right, 1]]) {
-    button.type = "button";
-    button.hidden = true;
-    button.setAttribute("aria-label", direction < 0 ? "Previous images" : "Next images");
-    button.addEventListener("click", () => {
-      thumbs.scrollBy({ left: direction * thumbs.clientWidth * 0.8, behavior: "smooth" });
-    });
-  }
-  thumbs.addEventListener("scroll", () => updateThumbs(wrap));
-  wrap.append(left, thumbs, right);
-  return wrap;
-}
-
-function updateThumbs(wrap) {
-  const thumbs = wrap.querySelector(".thumbs");
-  const moreLeft = thumbs.scrollLeft > 1;
-  const moreRight = thumbs.scrollLeft + thumbs.clientWidth < thumbs.scrollWidth - 1;
-  wrap.classList.toggle("more-left", moreLeft);
-  wrap.classList.toggle("more-right", moreRight);
-  wrap.querySelector(".thumb-arrow.left").hidden = !moreLeft;
-  wrap.querySelector(".thumb-arrow.right").hidden = !moreRight;
 }
 
 function renderPost(post) {
@@ -110,7 +38,8 @@ function renderPost(post) {
   wrapper.append(text);
   if (sources.length) {
     article.classList.add("has-thumbs");
-    wrapper.append(renderThumbs(sources, url));
+    const opens = (link) => !link.closest(".post").classList.contains("clipped");
+    wrapper.append(imageStrip(sources, { limit: MAX_THUMBS, href: url, opens }));
   }
   const fade = element("div", undefined, "fade");
   const read = element("a", "Read...", "read");
@@ -134,7 +63,7 @@ function clipPosts() {
     article.querySelector(".fade").hidden = !clipped;
     article.querySelector(".read").hidden = !clipped;
     const wrap = article.querySelector(".thumbs-wrap");
-    if (wrap) updateThumbs(wrap);
+    if (wrap) updateStrip(wrap);
   }
 }
 

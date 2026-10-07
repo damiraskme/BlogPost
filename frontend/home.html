@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Home</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="home">
+  <div class="home-page">
+    <aside class="home-side">
+      <section class="panel home-recent">
+        <h2>Recent posts</h2>
+        <div id="recent"></div>
+      </section>
+      <section class="panel home-github">
+        <h2>GitHub activity</h2>
+      </section>
+      <section class="panel home-links">
+        <h2>Links</h2>
+        <p><a href="https://www.linkedin.com/in/damirzh/" target="_blank" rel="noopener">LinkedIn</a></p>
+        <p><a href="https://github.com/damiraskme" target="_blank" rel="noopener">GitHub</a></p>
+        <p><a href="#">Telegram</a></p>
+      </section>
+    </aside>
+    <div class="home-main">
+      <nav class="home-nav">
+        <span><a href="/">Home</a> | <a href="/blog">Blog</a></span>
+        <span id="admin-nav" hidden><a href="/posts">Posts</a> | <a href="/new">Add post</a></span>
+      </nav>
+      <section class="panel home-about">
+        <h2>About me</h2>
+        <p>About me and about this website.</p>
+      </section>
+      <section class="panel home-posts">
+        <div class="home-posts-head">
+          <h2>Posts</h2>
+          <a href="/blog">Read all posts</a>
+        </div>
+        <div id="posts"></div>
+        <p id="status"></p>
+      </section>
+    </div>
+  </div>
+  <script type="module" src="/js/nav.js"></script>
+  <script type="module" src="/js/home.js"></script>
+</body>
+</html>

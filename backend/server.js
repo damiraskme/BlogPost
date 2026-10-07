@@ -16,6 +16,7 @@ const VERIFY_WORKERS = 4;
 const PAGE_SIZE = 5;
 
 const PAGES = new Map([
+  ["/", "home.html"],
   ["/blog", "blog.html"],
   ["/post", "post.html"],
   ["/login", "login.html"],
@@ -387,10 +388,6 @@ async function handle(req, res) {
   if (pathname.startsWith("/api/")) return handleApi(req, res, pathname, url.searchParams);
   if (req.method !== "GET" && req.method !== "HEAD") throw httpError(405, "Method not allowed");
 
-  if (pathname === "/") {
-    res.writeHead(302, { Location: "/blog" });
-    return res.end();
-  }
   if (ADMIN_PAGES.has(pathname) && !auth.getSession(req)) {
     res.writeHead(302, { Location: "/login" });
     return res.end();
