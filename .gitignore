@@ -2,5 +2,8 @@ node_modules/
 .venv/
 backend/data/admin.json
 backend/data/sessions.json
+backend/data/*.tmp
+backend/media/*
+!backend/media/.gitkeep
 backend/.env
 temp

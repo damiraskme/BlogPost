@@ -125,8 +125,20 @@ body {
   color: gray;
 }
 
+.share-button.checking {
+  border-style: dashed;
+  border-color: gray;
+  color: gray;
+}
+
 .share-button.danger-text {
   border-color: red;
+}
+
+.pager {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
 }
 
 .post-body {

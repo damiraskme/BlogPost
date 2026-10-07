@@ -16,6 +16,7 @@ export function shareLinks(post) {
       node.rel = "noopener";
     }
     if (post.shares?.[network]?.delete_error) node.classList.add("danger-text");
+    else if (post.checking && url) node.classList.add("checking");
     else if (!url) node.classList.add("muted");
     group.append(node);
   }

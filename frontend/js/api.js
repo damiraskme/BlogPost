@@ -37,6 +37,10 @@ export function listPosts() {
   return request("/api/posts");
 }
 
+export function listPage(page) {
+  return request(`/api/posts?page=${page}`);
+}
+
 export function getPost(slug) {
   return request(`/api/posts/${encodeURIComponent(slug)}`);
 }
@@ -47,6 +51,10 @@ export function createPost(post) {
 
 export function sharePost(slug, network) {
   return postJson(`/api/posts/${encodeURIComponent(slug)}/share`, { network });
+}
+
+export function verifyPosts() {
+  return postJson("/api/posts/verify", {});
 }
 
 export function unsharePost(slug, network) {

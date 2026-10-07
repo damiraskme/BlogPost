@@ -1,29 +1,11 @@
 [
   {
     "id": 1,
-    "post_id": 2,
-    "title": "Test 2",
+    "post_id": null,
+    "title": "Example draft",
     "type": "article",
-    "body": "Test",
-    "share": [],
-    "updated_at": "2026-10-03T21:36:56.400Z"
-  },
-  {
-    "id": 2,
-    "post_id": 2,
-    "title": "Test draft 2",
-    "type": "article",
-    "body": "Test&nbsp;",
-    "share": [],
-    "updated_at": "2026-10-03T21:37:06.338Z"
-  },
-  {
-    "id": 3,
-    "post_id": 2,
-    "title": "Test draft 3",
-    "type": "article",
-    "body": "Test&nbsp;",
-    "share": [],
-    "updated_at": "2026-10-03T21:37:10.059Z"
+    "body": "<div>An unfinished post.</div>",
+    "share": ["telegram"],
+    "updated_at": "2026-01-03T10:00:00.000Z"
   }
 ]

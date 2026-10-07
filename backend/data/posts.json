@@ -1,107 +1,29 @@
 [
   {
     "id": 1,
-    "slug": "test-1",
+    "slug": "example-article",
     "type": "article",
-    "title": "Test 1",
-    "body": "Test",
-    "excerpt": "Test",
-    "created_at": "2026-10-03T21:36:37.330Z",
-    "shares": {
-      "telegram": {
-        "ok": true,
-        "at": "2026-10-03T21:36:37.332Z",
-        "message_ids": [
-          8
-        ],
-        "chat_id": -1004414184762,
-        "chat_username": "damiraskmeblog"
-      }
-    }
+    "title": "Example article",
+    "body": "<div>This is an example article. It has a header and a longer body.</div><div><br></div><div>Text can be <b>bold</b>, <i>italic</i> or contain a <a href=\"https://example.com\">link</a>.</div>",
+    "excerpt": "This is an example article. It has a header and a longer body. Text can be bold, italic or contain a link.",
+    "created_at": "2026-01-01T10:00:00.000Z"
   },
   {
     "id": 2,
-    "slug": "test-2",
-    "type": "article",
-    "title": "Test 2",
-    "body": "Test",
-    "excerpt": "Test",
-    "created_at": "2026-10-03T21:36:48.717Z",
+    "slug": "post-2",
+    "type": "short",
+    "title": "",
+    "body": "<div>This is an example short post without a header.</div>",
+    "excerpt": "This is an example short post without a header.",
+    "created_at": "2026-01-02T10:00:00.000Z",
     "shares": {
       "telegram": {
         "ok": true,
-        "at": "2026-10-03T21:36:48.718Z",
-        "message_ids": [
-          9
-        ],
-        "chat_id": -1004414184762,
-        "chat_username": "damiraskmeblog"
+        "at": "2026-01-02T10:00:01.000Z",
+        "message_ids": [1],
+        "chat_id": -1000000000000,
+        "chat_username": "example_channel"
       }
     }
-  },
-  {
-    "id": 3,
-    "slug": "short-article",
-    "type": "article",
-    "title": "Short Article",
-    "body": "Line<div>line</div><div>line</div><div>line</div><div><img src=\"/media/5ebf3862e5e1850e66bcf58958b47099.png\" alt=\"\"></div>",
-    "excerpt": "Line line line line",
-    "created_at": "2026-10-03T23:02:36.405Z",
-    "updated_at": "2026-10-03T23:02:55.226Z"
-  },
-  {
-    "id": 4,
-    "slug": "long-article",
-    "type": "article",
-    "title": "Long Article",
-    "body": "<div>Line</div><div>Line</div><div>Line</div><div>Line</div><div>Line</div><div>Line</div><div>Line</div><div>Line</div><div>Line</div><div>Line</div><div>LineLine</div><div>Line</div><div>Line</div><div>Line</div><div>Line</div><div><img src=\"/media/5ebf3862e5e1850e66bcf58958b47099.png\" alt=\"\"></div>",
-    "excerpt": "Line Line Line Line Line Line Line Line Line Line LineLine Line Line Line Line",
-    "created_at": "2026-10-03T23:03:34.593Z",
-    "shares": {
-      "telegram": {
-        "ok": true,
-        "at": "2026-10-03T23:03:34.594Z",
-        "message_ids": [
-          10
-        ],
-        "chat_id": -1004414184762,
-        "chat_username": "damiraskmeblog"
-      }
-    }
-  },
-  {
-    "id": 5,
-    "slug": "short-post",
-    "type": "article",
-    "title": "Short post",
-    "body": "LineLineLine<div><img src=\"/media/5ebf3862e5e1850e66bcf58958b47099.png\" alt=\"\"><img src=\"/media/5ebf3862e5e1850e66bcf58958b47099.png\" alt=\"\"><img src=\"/media/5ebf3862e5e1850e66bcf58958b47099.png\" alt=\"\"><img src=\"/media/5ebf3862e5e1850e66bcf58958b47099.png\" alt=\"\"></div>",
-    "excerpt": "LineLineLine",
-    "created_at": "2026-10-03T23:04:10.234Z",
-    "shares": {
-      "telegram": {
-        "ok": true,
-        "at": "2026-10-03T23:04:10.235Z",
-        "message_ids": [
-          11
-        ],
-        "chat_id": -1004414184762,
-        "chat_username": "damiraskmeblog"
-      },
-      "linkedin": {
-        "ok": true,
-        "at": "2026-10-03T23:10:18.481Z",
-        "post_id": "urn:li:share:7512287955118637056",
-        "note": "SITE_URL is not set, posted without a link"
-      }
-    }
-  },
-  {
-    "id": 6,
-    "slug": "sadasd",
-    "type": "article",
-    "title": "sadasd",
-    "body": "sdadad",
-    "excerpt": "sdadad",
-    "created_at": "2026-10-07T20:03:33.968Z"
   }
 ]

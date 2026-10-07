@@ -1,4 +1,4 @@
-import { listPosts, deletePost, logout, postUrl, editUrl, formatDate, NETWORK_NAMES } from "./api.js";
+import { listPosts, verifyPosts, deletePost, logout, postUrl, editUrl, formatDate, NETWORK_NAMES } from "./api.js";
 import { shareLinks } from "./links.js";
 
 const list = document.getElementById("posts");
@@ -120,10 +120,23 @@ function renderPost(post) {
   return box;
 }
 
+function showPosts(posts) {
+  list.replaceChildren(...posts.map(renderPost));
+}
+
 async function load() {
   const posts = await listPosts();
-  if (!posts.length) status.textContent = "No posts yet.";
-  list.append(...posts.map(renderPost));
+  if (!posts.length) {
+    status.textContent = "No posts yet.";
+    return;
+  }
+  for (const post of posts) post.checking = true;
+  showPosts(posts);
+  status.textContent = "Checking which posts still exist on Telegram and LinkedIn...";
+  const verified = await verifyPosts();
+  showPosts(verified.posts);
+  const notes = Object.values(verified.unverified);
+  status.textContent = notes.length ? `Not checked: ${notes.join("; ")}` : "";
 }
 
 document.getElementById("logout").addEventListener("click", async () => {
