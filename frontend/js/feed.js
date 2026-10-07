@@ -1,5 +1,6 @@
 import { listPage, postUrl, formatDate } from "./api.js";
 import { shareLinks } from "./links.js";
+import { openLightbox } from "./lightbox.js";
 
 const SHORT_LINES = 15;
 const ARTICLE_LINES = 8;
@@ -34,23 +35,57 @@ function splitBody(html) {
   return { content, sources };
 }
 
+function imageLink(sources, position, url) {
+  const link = element("a");
+  link.href = url;
+  link.addEventListener("click", (event) => {
+    if (link.closest(".post").classList.contains("clipped")) return;
+    event.preventDefault();
+    openLightbox(sources, position);
+  });
+  return link;
+}
+
 function renderThumbs(sources, url) {
   const thumbs = element("div", undefined, "thumbs");
-  for (const src of sources.slice(0, MAX_THUMBS)) {
-    const link = element("a");
-    link.href = url;
+  sources.slice(0, MAX_THUMBS).forEach((src, position) => {
+    const link = imageLink(sources, position, url);
     const image = element("img");
     image.src = src;
     image.alt = "";
     link.append(image);
     thumbs.append(link);
-  }
+  });
   if (sources.length > MAX_THUMBS) {
-    const more = element("a", `+${sources.length - MAX_THUMBS}`);
-    more.href = url;
+    const more = imageLink(sources, MAX_THUMBS, url);
+    more.textContent = `+${sources.length - MAX_THUMBS}`;
     thumbs.append(more);
   }
-  return thumbs;
+
+  const wrap = element("div", undefined, "thumbs-wrap");
+  const left = element("button", "‹", "thumb-arrow left");
+  const right = element("button", "›", "thumb-arrow right");
+  for (const [button, direction] of [[left, -1], [right, 1]]) {
+    button.type = "button";
+    button.hidden = true;
+    button.setAttribute("aria-label", direction < 0 ? "Previous images" : "Next images");
+    button.addEventListener("click", () => {
+      thumbs.scrollBy({ left: direction * thumbs.clientWidth * 0.8, behavior: "smooth" });
+    });
+  }
+  thumbs.addEventListener("scroll", () => updateThumbs(wrap));
+  wrap.append(left, thumbs, right);
+  return wrap;
+}
+
+function updateThumbs(wrap) {
+  const thumbs = wrap.querySelector(".thumbs");
+  const moreLeft = thumbs.scrollLeft > 1;
+  const moreRight = thumbs.scrollLeft + thumbs.clientWidth < thumbs.scrollWidth - 1;
+  wrap.classList.toggle("more-left", moreLeft);
+  wrap.classList.toggle("more-right", moreRight);
+  wrap.querySelector(".thumb-arrow.left").hidden = !moreLeft;
+  wrap.querySelector(".thumb-arrow.right").hidden = !moreRight;
 }
 
 function renderPost(post) {
@@ -95,8 +130,11 @@ function clipPosts() {
     const limit = Number(article.dataset.lines) * parseFloat(getComputedStyle(text).lineHeight);
     const clipped = text.scrollHeight > limit + 1;
     if (clipped) text.style.maxHeight = `${limit}px`;
+    article.classList.toggle("clipped", clipped);
     article.querySelector(".fade").hidden = !clipped;
     article.querySelector(".read").hidden = !clipped;
+    const wrap = article.querySelector(".thumbs-wrap");
+    if (wrap) updateThumbs(wrap);
   }
 }
 
