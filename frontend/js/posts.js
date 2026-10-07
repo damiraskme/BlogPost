@@ -97,7 +97,6 @@ function pendingControls(post, box) {
     const error = post.shares[network].delete_error;
     container.append(element("p", `Not deleted from ${NETWORK_NAMES[network] || network}: ${error}`, "danger-text"));
   }
-  container.append(element("p", "This post is hidden from visitors. Delete the remaining copies by hand, or retry."));
   const line = element("p");
   const retry = element("button", "Retry");
   const force = element("button", "Delete from site only", "danger");
@@ -130,13 +129,9 @@ async function load() {
     status.textContent = "No posts yet.";
     return;
   }
-  for (const post of posts) post.checking = true;
   showPosts(posts);
-  status.textContent = "Checking which posts still exist on Telegram and LinkedIn...";
-  const verified = await verifyPosts();
-  showPosts(verified.posts);
-  const notes = Object.values(verified.unverified);
-  status.textContent = notes.length ? `Not checked: ${notes.join("; ")}` : "";
+  const verified = await verifyPosts().catch(() => null);
+  if (verified) showPosts(verified.posts);
 }
 
 document.getElementById("logout").addEventListener("click", async () => {
