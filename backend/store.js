@@ -321,12 +321,18 @@ function cleanHashtags(input) {
     .slice(0, MAX_HASHTAG_SETS);
 }
 
+function cleanGithubUser(value) {
+  const name = typeof value === "string" ? value.trim() : "";
+  return /^[A-Za-z0-9-]{1,39}$/.test(name) ? name : "";
+}
+
 function getSettings() {
   const settings = readJson(SETTINGS_FILE, {});
   return {
     share: settings.share && typeof settings.share === "object" ? settings.share : {},
     default_type: POST_TYPES.includes(settings.default_type) ? settings.default_type : "short",
     hashtags: cleanHashtags(settings.hashtags),
+    github_user: cleanGithubUser(settings.github_user),
   };
 }
 
@@ -338,6 +344,7 @@ function saveSettings(input) {
     share,
     default_type: POST_TYPES.includes(input?.default_type) ? input.default_type : current.default_type,
     hashtags: Array.isArray(input?.hashtags) ? cleanHashtags(input.hashtags) : current.hashtags,
+    github_user: typeof input?.github_user === "string" ? cleanGithubUser(input.github_user) : current.github_user,
   };
   writeJson(SETTINGS_FILE, settings);
   return settings;

@@ -139,6 +139,10 @@ export function deleteAutosave(key) {
   return request(`/api/autosave?key=${encodeURIComponent(key)}`, { method: "DELETE" });
 }
 
+export function getGithubActivity() {
+  return request("/api/github");
+}
+
 export function getProfiles() {
   return request("/api/profiles");
 }

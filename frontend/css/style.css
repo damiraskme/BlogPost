@@ -1073,6 +1073,75 @@ button.danger {
   color: var(--muted);
 }
 
+.github-card {
+  border: 1px solid #3d444d;
+  border-radius: 6px;
+  padding: 8px;
+  background: #0d1117;
+  color: #f0f6fc;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.github-summary {
+  margin-bottom: 6px;
+  font-size: 11px;
+}
+
+.github-grid {
+  display: grid;
+  grid-template-rows: auto repeat(7, 10px);
+  grid-template-columns: auto;
+  grid-auto-columns: 10px;
+  justify-content: start;
+  gap: 2px;
+}
+
+.github-label {
+  line-height: 10px;
+  white-space: nowrap;
+}
+
+.github-weekday {
+  padding-right: 4px;
+}
+
+.github-day {
+  box-sizing: border-box;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  outline: 1px solid rgba(255, 255, 255, 0.05);
+  outline-offset: -1px;
+  background: #151b23;
+}
+
+.github-day.level-1 {
+  background: #033a16;
+}
+
+.github-day.level-2 {
+  background: #196c2e;
+}
+
+.github-day.level-3 {
+  background: #2ea043;
+}
+
+.github-day.level-4 {
+  background: #56d364;
+}
+
+.github-legend {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 3px;
+  margin-top: 6px;
+  color: #9198a1;
+}
+
 .home-github {
   min-height: 96px;
 }

@@ -46,6 +46,7 @@ async function load() {
     networks.append(line);
   }
   document.querySelector(`input[name=default-type][value=${settings.default_type}]`).checked = true;
+  document.getElementById("github-user").value = settings.github_user;
   for (const set of settings.hashtags) addSet(set);
 }
 
@@ -63,6 +64,7 @@ save.addEventListener("click", async () => {
       share,
       default_type: document.querySelector("input[name=default-type]:checked").value,
       hashtags: sets,
+      github_user: document.getElementById("github-user").value,
     });
     status.textContent = "Saved";
   } catch (error) {

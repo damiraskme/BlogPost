@@ -5,6 +5,7 @@ const crypto = require("crypto");
 const auth = require("./auth");
 const store = require("./store");
 const share = require("./share");
+const github = require("./github");
 const { firstImage } = require("./share/content");
 const { MEDIA_DIR, removeUnused } = require("./media");
 
@@ -284,6 +285,9 @@ async function handleApi(req, res, pathname, query) {
     removeUnused(store.usedBodies());
     return sendJson(res, 201, viewPost(await shareTo(req, post, [...new Set(networks)]), true));
   }
+  if (route === "GET /api/github") {
+    return sendJson(res, 200, { days: await github.recentActivity(store.getSettings().github_user) });
+  }
   if (route === "GET /api/profiles") {
     requireSession(req);
     return sendJson(res, 200, await share.profiles());
@@ -457,4 +461,5 @@ server.listen(PORT, () => {
   console.log(`Listening on http://localhost:${PORT}`);
   if (!auth.hasCredentials()) console.log("No admin account yet. Run: npm run set-password");
   console.log(`Sharing to: ${share.available().join(", ") || "nothing configured"}`);
+  console.log(`GitHub activity: ${github.isConfigured() ? "on" : "off, GITHUB_TOKEN is not set"}`);
 });
