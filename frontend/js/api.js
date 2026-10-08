@@ -118,3 +118,27 @@ export function formatDate(iso) {
   const value = (type) => parts.find((part) => part.type === type).value;
   return `${value("weekday")} ${value("day")} ${value("month")} ${value("year")}`;
 }
+
+export function previewPost(post) {
+  return postJson("/api/preview", post);
+}
+
+export function testShare(post) {
+  return postJson("/api/test-share", post);
+}
+
+export function getAutosave(key) {
+  return request(`/api/autosave?key=${encodeURIComponent(key)}`);
+}
+
+export function setAutosave(key, state) {
+  return postJson("/api/autosave", { key, state });
+}
+
+export function deleteAutosave(key) {
+  return request(`/api/autosave?key=${encodeURIComponent(key)}`, { method: "DELETE" });
+}
+
+export function getProfiles() {
+  return request("/api/profiles");
+}

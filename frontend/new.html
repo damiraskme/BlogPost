@@ -7,8 +7,7 @@
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-  <div class="page">
-    <div class="banner"></div>
+  <div class="page wide">
     <main class="main">
       <nav class="nav">
         <span class="nav-main"><a href="/">Home</a> | <span class="inactive">About</span> | <a href="/blog">Blog</a></span>
@@ -18,20 +17,66 @@
         <h2 id="drafts-title">Drafts</h2>
         <div id="draft-list"></div>
       </div>
-      <div class="box">
+      <div id="workspace" class="workspace mode-telegram">
+        <div class="box">
         <p id="mode"></p>
+        <p id="header-toggle" hidden><button id="add-header" type="button">Add header</button></p>
         <input id="title" class="field" type="text" placeholder="Header" maxlength="200">
         <p>
-          <label><input type="radio" name="type" value="article" checked> Article</label>
-          <label><input type="radio" name="type" value="short"> Short</label>
+          <label><input type="radio" name="type" value="short" checked> Short</label>
+          <label><input type="radio" name="type" value="article"> Article</label>
         </p>
-        <div id="body" class="field post-body" contenteditable="true"></div>
+        <div id="tabs" class="tabs">
+          <button type="button" data-tab="all">All</button>
+          <button type="button" data-tab="telegram">Telegram</button>
+          <button type="button" data-tab="linkedin">LinkedIn</button>
+        </div>
+        <div id="toolbar" class="toolbar">
+          <button type="button" data-command="bold" aria-label="Bold"><b>B</b></button>
+          <button type="button" data-command="italic" aria-label="Italic"><i>I</i></button>
+          <button type="button" data-command="underline" aria-label="Underline"><u>U</u></button>
+          <button type="button" data-command="strikeThrough" aria-label="Strikethrough"><s>S</s></button>
+          <button id="link-button" type="button">Link</button>
+          <button type="button" data-command="removeFormat">Clear</button>
+        </div>
+        <div id="link-popup" class="link-popup" hidden>
+          <input id="link-url" type="text" placeholder="https://">
+          <button id="link-apply" type="button">Apply</button>
+          <button id="link-remove" type="button">Remove</button>
+        </div>
+        <div id="body" class="field post-body area" contenteditable="true"></div>
+        <div id="body-telegram" class="field post-body area" contenteditable="true" hidden></div>
+        <div id="body-linkedin" class="field post-body area" contenteditable="true" hidden></div>
+        <p id="copy-row" hidden><button id="copy-main" type="button">Copy from All</button></p>
+        <div id="tray" class="tray"></div>
+        <p id="tray-note"></p>
+        <p id="hashtags"></p>
+        <p id="counters"></p>
         <p id="networks"></p>
+        <p id="telegram-options" hidden>
+          <label><input id="telegram-silent" type="checkbox"> Silent</label>
+          <label><input id="telegram-preview" type="checkbox"> Link preview</label>
+        </p>
+        <p id="update-networks"></p>
         <div id="post-networks"></div>
         <button id="publish" type="button">Publish</button>
         <button id="save-draft" type="button">Save draft</button>
+        <button id="send-test" type="button" hidden>Send test to Telegram</button>
+        <button id="discard" type="button" hidden>Discard changes</button>
         <button id="logout" type="button">Log out</button>
         <p id="status"></p>
+        </div>
+        <div class="preview-column">
+          <div id="preview-mode" class="tabs">
+            <button type="button" data-mode="telegram">Telegram</button>
+            <button type="button" data-mode="linkedin">LinkedIn</button>
+            <button type="button" data-mode="both">Both</button>
+          </div>
+          <div class="preview-windows">
+            <div id="preview-telegram" class="preview-window tg"></div>
+            <div id="preview-linkedin" class="preview-window li"></div>
+          </div>
+        </div>
       </div>
     </main>
   </div>

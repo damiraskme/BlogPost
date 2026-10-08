@@ -11,12 +11,14 @@ function isAvailable(name) {
   return Object.hasOwn(NETWORKS, name) && NETWORKS[name].isConfigured();
 }
 
+function testTargets() {
+  return telegram.canTest() ? ["telegram"] : [];
+}
+
 async function sharePost(post, name, link) {
-  const network = NETWORKS[name];
   const at = new Date().toISOString();
   try {
-    const result = post.type === "short" ? await network.shareShort(post, link) : await network.shareArticle(post, link);
-    return { ok: true, at, ...result };
+    return { ok: true, at, ...(await NETWORKS[name].share(post, link)) };
   } catch (error) {
     return { ok: false, at, error: error.message };
   }
@@ -35,14 +37,52 @@ function links(post) {
   return result;
 }
 
-async function removeShare(name, result) {
-  if (!isAvailable(name)) return { ok: false, error: `${name} is not configured in .env` };
+async function attempt(action) {
   try {
-    await NETWORKS[name].remove(result);
+    await action();
     return { ok: true };
   } catch (error) {
     return { ok: false, error: error.message };
   }
+}
+
+function removeShare(name, result) {
+  if (!isAvailable(name)) return { ok: false, error: `${name} is not configured in .env` };
+  return attempt(() => NETWORKS[name].remove(result));
+}
+
+function updateShare(name, post, result, link) {
+  if (!isAvailable(name)) return { ok: false, error: `${name} is not configured in .env` };
+  return attempt(() => NETWORKS[name].update(post, result, link));
+}
+
+function sendTest(post, link) {
+  if (!telegram.canTest()) return { ok: false, error: "TELEGRAM_TEST_CHAT_ID is not set in .env" };
+  return attempt(() => telegram.sendTest(post, link));
+}
+
+function preview(post, link) {
+  const result = {};
+  for (const [name, network] of Object.entries(NETWORKS)) {
+    try {
+      result[name] = network.preview(post, link);
+    } catch (error) {
+      result[name] = { error: error.message };
+    }
+  }
+  return result;
+}
+
+async function profiles() {
+  const result = {};
+  for (const name of available()) {
+    try {
+      result[name] = await NETWORKS[name].profile();
+    } catch {
+      result[name] = { name: null };
+    }
+  }
+  return result;
 }
 
 async function checkShare(name, result) {
@@ -54,4 +94,17 @@ async function checkShare(name, result) {
   }
 }
 
-module.exports = { available, isAvailable, sharePost, isLive, links, removeShare, checkShare };
+module.exports = {
+  available,
+  isAvailable,
+  testTargets,
+  sharePost,
+  isLive,
+  links,
+  removeShare,
+  updateShare,
+  sendTest,
+  preview,
+  profiles,
+  checkShare,
+};

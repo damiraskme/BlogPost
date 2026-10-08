@@ -14,6 +14,7 @@ const MAX_JSON_BYTES = 2 * 1024 * 1024;
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const VERIFY_WORKERS = 4;
 const PAGE_SIZE = 5;
+const AUTOSAVE_KEY = /^[a-z0-9-]{1,40}$/;
 
 const PAGES = new Map([
   ["/", "home.html"],
@@ -56,6 +57,10 @@ function siteUrl(req) {
 
 function postLink(req, post) {
   return `${siteUrl(req)}/post?slug=${encodeURIComponent(post.slug)}`;
+}
+
+function shareLink(req, post) {
+  return process.env.SITE_URL ? postLink(req, post) : null;
 }
 
 function escapeHtml(text) {
@@ -130,8 +135,7 @@ async function deletePost(req, res, slug) {
 async function shareTo(req, post, networks) {
   let current = post;
   for (const network of networks) {
-    const link = process.env.SITE_URL ? postLink(req, current) : null;
-    const result = await share.sharePost(current, network, link);
+    const result = await share.sharePost(current, network, shareLink(req, current));
     current = store.setShare(current.id, network, result);
   }
   return current;
@@ -241,7 +245,11 @@ async function handleApi(req, res, pathname, query) {
 
   if (route === "GET /api/session") {
     const authenticated = Boolean(auth.getSession(req));
-    return sendJson(res, 200, { authenticated, networks: authenticated ? share.available() : [] });
+    return sendJson(res, 200, {
+      authenticated,
+      networks: authenticated ? share.available() : [],
+      test: authenticated ? share.testTargets() : [],
+    });
   }
   if (route === "POST /api/login") {
     return handleLogin(req, res);
@@ -275,6 +283,36 @@ async function handleApi(req, res, pathname, query) {
     if (Number.isInteger(input.draft_id)) store.deleteDraft(input.draft_id);
     removeUnused(store.usedBodies());
     return sendJson(res, 201, viewPost(await shareTo(req, post, [...new Set(networks)]), true));
+  }
+  if (route === "GET /api/profiles") {
+    requireSession(req);
+    return sendJson(res, 200, await share.profiles());
+  }
+  if (route === "POST /api/preview") {
+    requireSession(req);
+    const post = store.previewPost(await readJson(req));
+    return sendJson(res, 200, share.preview(post, shareLink(req, post)));
+  }
+  if (route === "POST /api/test-share") {
+    requireSession(req);
+    const post = store.checkedPost(await readJson(req));
+    const outcome = await share.sendTest(post, shareLink(req, post));
+    if (!outcome.ok) throw httpError(502, outcome.error);
+    return sendJson(res, 200, { ok: true });
+  }
+  if (pathname === "/api/autosave") {
+    requireSession(req);
+    const key = req.method === "POST" ? null : query.get("key");
+    if (req.method === "GET") return sendJson(res, 200, { state: AUTOSAVE_KEY.test(key || "") ? store.getAutosave(key) : null });
+    if (req.method === "DELETE") {
+      if (AUTOSAVE_KEY.test(key || "")) store.deleteAutosave(key);
+      return sendJson(res, 200, { deleted: true });
+    }
+    if (req.method === "POST") {
+      const input = await readJson(req);
+      if (!AUTOSAVE_KEY.test(input?.key || "")) throw httpError(400, "Invalid key");
+      return sendJson(res, 200, store.setAutosave(input.key, input.state));
+    }
   }
   if (route === "GET /api/drafts") {
     requireSession(req);
@@ -335,7 +373,12 @@ async function handleApi(req, res, pathname, query) {
     if (!post) throw httpError(404, "Post not found");
     if (Number.isInteger(input.draft_id)) store.deleteDraft(input.draft_id);
     removeUnused(store.usedBodies());
-    return sendJson(res, 200, viewPost(post, true));
+    const updates = {};
+    for (const network of Array.isArray(input.update) ? [...new Set(input.update)] : []) {
+      const shared = post.shares?.[network];
+      if (share.isLive(shared)) updates[network] = await share.updateShare(network, post, shared, shareLink(req, post));
+    }
+    return sendJson(res, 200, { ...viewPost(post, true), updates });
   }
   if (req.method === "DELETE" && pathname.startsWith("/api/posts/")) {
     requireSession(req);

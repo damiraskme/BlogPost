@@ -8,7 +8,7 @@ const COMMENTARY_LIMIT = 3000;
 const MULTI_IMAGE_LIMIT = 20;
 const SUPPORTED_TYPES = ["image/png", "image/jpeg"];
 
-let cachedAuthor = null;
+let cachedUser = null;
 
 function config() {
   return {
@@ -42,16 +42,23 @@ async function check(response) {
   throw new Error(`LinkedIn: ${message || `HTTP ${response.status}`}`);
 }
 
-async function getAuthor() {
-  if (config().author) return config().author;
-  if (cachedAuthor) return cachedAuthor;
+async function userInfo() {
+  if (cachedUser) return cachedUser;
   const response = await fetch(`${API_URL}/v2/userinfo`, { headers: { Authorization: `Bearer ${config().token}` } });
   if (response.status === 403) {
     throw new Error("LinkedIn: the token cannot read your profile id; generate it with the openid and profile scopes, or set LINKEDIN_AUTHOR_URN");
   }
-  const { sub } = await (await check(response)).json();
-  cachedAuthor = `urn:li:person:${sub}`;
-  return cachedAuthor;
+  cachedUser = await (await check(response)).json();
+  return cachedUser;
+}
+
+async function getAuthor() {
+  if (config().author) return config().author;
+  return `urn:li:person:${(await userInfo()).sub}`;
+}
+
+async function profile() {
+  return { name: (await userInfo()).name || null };
 }
 
 async function uploadImage(owner, image) {
@@ -97,9 +104,13 @@ function escapeText(text) {
   return text.replace(/[\\|{}@[\]()<>*_~]|#(?![\p{L}\p{N}])/gu, "\\$&");
 }
 
-function commentary(post, type, link) {
-  const template = getTemplate("linkedin", type);
-  const text = toPlainText(renderTemplate(template.text, templateValues(post, template.locale, link, link)));
+function renderText(post, link) {
+  const template = getTemplate("linkedin", post.type);
+  return toPlainText(renderTemplate(template.text, templateValues(post, "linkedin", template.locale, link, link)));
+}
+
+function commentary(post, link) {
+  const text = renderText(post, link);
   if (text.length > COMMENTARY_LIMIT) throw new Error(`LinkedIn: text is longer than ${COMMENTARY_LIMIT} characters`);
   return text;
 }
@@ -121,7 +132,7 @@ function mediaContent(ids) {
 }
 
 async function shareShort(post, link) {
-  const text = commentary(post, "short", link);
+  const text = commentary(post, link);
   const { supported, skipped } = supportedImages(parseBody(post.body).images);
   if (supported.length > MULTI_IMAGE_LIMIT) throw new Error(`LinkedIn: at most ${MULTI_IMAGE_LIMIT} images per post`);
   if (!text && !supported.length) throw new Error("LinkedIn: nothing to send");
@@ -133,7 +144,7 @@ async function shareShort(post, link) {
 }
 
 async function shareArticle(post, link) {
-  const text = commentary(post, "article", link);
+  const text = commentary(post, link);
   const author = await getAuthor();
   const { supported, skipped } = supportedImages(parseBody(post.body).images);
   const thumbnail = supported.length ? await uploadImage(author, supported[0]) : null;
@@ -149,6 +160,25 @@ async function shareArticle(post, link) {
     notes.push("SITE_URL is not set, posted without a link");
   }
   return { post_id: await createPost(author, escapeText(text), content), note: notes.join("; ") || undefined };
+}
+
+function share(post, link) {
+  return post.type === "short" ? shareShort(post, link) : shareArticle(post, link);
+}
+
+function preview(post, link) {
+  const text = renderText(post, link);
+  const article = post.type !== "short" && link ? { title: post.title, description: post.excerpt, source: link } : null;
+  return { text, length: text.length, limit: COMMENTARY_LIMIT, article };
+}
+
+async function update(post, shared, link) {
+  const response = await fetch(`${API_URL}/rest/posts/${encodeURIComponent(shared.post_id)}`, {
+    method: "POST",
+    headers: headers({ "Content-Type": "application/json", "X-RestLi-Method": "PARTIAL_UPDATE" }),
+    body: JSON.stringify({ patch: { $set: { commentary: escapeText(commentary(post, link)) } } }),
+  });
+  await check(response);
 }
 
 function postUrl(result) {
@@ -173,4 +203,4 @@ async function exists(result) {
   return true;
 }
 
-module.exports = { isConfigured, shareShort, shareArticle, postUrl, remove, exists };
+module.exports = { isConfigured, share, preview, update, postUrl, remove, exists, profile };

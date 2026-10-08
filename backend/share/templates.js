@@ -19,8 +19,8 @@ function getTemplate(network, type) {
   return { locale: templates.locale, ...(typeof template === "string" ? { text: template } : template) };
 }
 
-function templateValues(post, locale, link, url) {
-  const body = parseBody(post.body);
+function templateValues(post, network, locale, link, url) {
+  const body = parseBody(post.overrides?.[network] || post.body);
   return {
     title: post.title,
     body: { text: body.text, entities: body.entities },

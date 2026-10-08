@@ -45,6 +45,9 @@ function renderCard(post) {
     heading.append(link);
     text.append(heading);
   }
+  const date = element("a", formatDate(post.created_at), "date");
+  date.href = url;
+  text.append(date);
   const body = element("div", undefined, "post-body");
   body.append(content);
   text.append(body);

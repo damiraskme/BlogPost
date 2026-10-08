@@ -8,7 +8,6 @@
 </head>
 <body>
   <div class="page">
-    <div class="banner"></div>
     <main class="main">
       <nav class="nav">
         <span class="nav-main"><a href="/">Home</a> | <span class="inactive">About</span> | <a href="/blog">Blog</a></span>
@@ -17,6 +16,14 @@
       <div class="box">
         <h2>Share new posts by default</h2>
         <div id="networks"></div>
+        <h2>Default post type</h2>
+        <p>
+          <label><input type="radio" name="default-type" value="short"> Short</label>
+          <label><input type="radio" name="default-type" value="article"> Article</label>
+        </p>
+        <h2>Hashtag sets</h2>
+        <div id="hashtags"></div>
+        <p><button id="add-set" type="button">Add set</button></p>
         <button id="save" type="button">Save</button>
         <p id="status"></p>
       </div>

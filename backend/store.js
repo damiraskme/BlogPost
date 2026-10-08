@@ -6,6 +6,9 @@ const DATA_DIR = path.join(__dirname, "data");
 const POSTS_FILE = path.join(DATA_DIR, "posts.json");
 const DRAFTS_FILE = path.join(DATA_DIR, "drafts.json");
 const SETTINGS_FILE = path.join(DATA_DIR, "settings.json");
+const AUTOSAVE_FILE = path.join(DATA_DIR, "autosave.json");
+const OVERRIDE_NETWORKS = ["telegram", "linkedin"];
+const MAX_HASHTAG_SETS = 20;
 const POST_TYPES = ["short", "article"];
 const MAX_TITLE_LENGTH = 200;
 const EXCERPT_LENGTH = 200;
@@ -121,6 +124,46 @@ function getPost(slug) {
   return readPosts().find((post) => post.slug === slug) || null;
 }
 
+function cleanOverrides(input) {
+  const result = {};
+  for (const network of OVERRIDE_NETWORKS) {
+    const html = input?.[network];
+    if (typeof html === "string" && toText(html)) result[network] = html;
+  }
+  return result;
+}
+
+function cleanOptions(input) {
+  const telegram = input?.telegram || {};
+  const result = { telegram: { silent: telegram.silent === true } };
+  if (typeof telegram.preview === "boolean") result.telegram.preview = telegram.preview;
+  return result;
+}
+
+function extraFields(input, type) {
+  return { overrides: type === "short" ? cleanOverrides(input.overrides) : {}, options: cleanOptions(input.options) };
+}
+
+function previewPost(input) {
+  const source = input && typeof input === "object" ? input : {};
+  const type = POST_TYPES.includes(source.type) ? source.type : "short";
+  const body = typeof source.body === "string" ? source.body : "";
+  return {
+    id: 0,
+    slug: "preview",
+    type,
+    title: typeof source.title === "string" ? source.title.trim().slice(0, MAX_TITLE_LENGTH) : "",
+    body,
+    excerpt: makeExcerpt(toText(body)),
+    created_at: new Date().toISOString(),
+    ...extraFields(source, type),
+  };
+}
+
+function checkedPost(input) {
+  return { id: 0, slug: "preview", ...postFields(input), created_at: new Date().toISOString() };
+}
+
 function postFields(input) {
   if (!input || typeof input !== "object") throw invalid("Invalid post");
   const { type, body } = input;
@@ -131,7 +174,7 @@ function postFields(input) {
   if (type === "article" && !title) throw invalid("Header is required for an article");
   const text = toText(body);
   if (!text && !/<img\b/i.test(body)) throw invalid("Body is required");
-  return { type, title, body, excerpt: makeExcerpt(text) };
+  return { type, title, body, excerpt: makeExcerpt(text), ...extraFields(input, type) };
 }
 
 function createPost(input) {
@@ -213,7 +256,15 @@ function saveDraft(input) {
     (draft) => (draft.post_id ?? null) === postId && draft.title.trim() === title.trim() && draft.body === body,
   );
   const draft = existing || { id: nextId(drafts) };
-  Object.assign(draft, { post_id: postId, title, type, body, share, updated_at: new Date().toISOString() });
+  Object.assign(draft, {
+    post_id: postId,
+    title,
+    type,
+    body,
+    share,
+    ...extraFields(input, type),
+    updated_at: new Date().toISOString(),
+  });
   if (!existing) drafts.push(draft);
   writeDrafts(drafts);
   return { ...draft, duplicate: Boolean(existing) };
@@ -227,19 +278,67 @@ function deleteDraft(id) {
   return true;
 }
 
+function readAutosaves() {
+  return readJson(AUTOSAVE_FILE, {});
+}
+
+function getAutosave(key) {
+  return readAutosaves()[key] || null;
+}
+
+function setAutosave(key, input) {
+  const saves = readAutosaves();
+  const type = POST_TYPES.includes(input?.type) ? input.type : "short";
+  saves[key] = {
+    title: typeof input?.title === "string" ? input.title.slice(0, MAX_TITLE_LENGTH) : "",
+    type,
+    body: typeof input?.body === "string" ? input.body : "",
+    share: Array.isArray(input?.share) ? input.share.filter((name) => typeof name === "string") : [],
+    ...extraFields(input || {}, type),
+    updated_at: new Date().toISOString(),
+  };
+  writeJson(AUTOSAVE_FILE, saves);
+  return saves[key];
+}
+
+function deleteAutosave(key) {
+  const saves = readAutosaves();
+  if (!Object.hasOwn(saves, key)) return;
+  delete saves[key];
+  writeJson(AUTOSAVE_FILE, saves);
+}
+
 function usedBodies() {
-  return [...readPosts(), ...readDrafts()].map((item) => item.body);
+  return [...readPosts(), ...readDrafts(), ...Object.values(readAutosaves())].map((item) => item.body);
+}
+
+function cleanHashtags(input) {
+  if (!Array.isArray(input)) return [];
+  return input
+    .filter((set) => set && typeof set.name === "string" && typeof set.tags === "string")
+    .map((set) => ({ name: set.name.trim().slice(0, 40), tags: set.tags.trim().slice(0, 300) }))
+    .filter((set) => set.name && set.tags)
+    .slice(0, MAX_HASHTAG_SETS);
 }
 
 function getSettings() {
   const settings = readJson(SETTINGS_FILE, {});
-  return { share: settings.share && typeof settings.share === "object" ? settings.share : {} };
+  return {
+    share: settings.share && typeof settings.share === "object" ? settings.share : {},
+    default_type: POST_TYPES.includes(settings.default_type) ? settings.default_type : "short",
+    hashtags: cleanHashtags(settings.hashtags),
+  };
 }
 
 function saveSettings(input) {
+  const current = getSettings();
   const share = {};
-  for (const [name, enabled] of Object.entries(input?.share || {})) share[name] = Boolean(enabled);
-  const settings = { ...getSettings(), share };
+  for (const [name, enabled] of Object.entries(input?.share || current.share)) share[name] = Boolean(enabled);
+  const settings = {
+    share,
+    default_type: POST_TYPES.includes(input?.default_type) ? input.default_type : current.default_type,
+    hashtags: Array.isArray(input?.hashtags) ? cleanHashtags(input.hashtags) : current.hashtags,
+  };
   writeJson(SETTINGS_FILE, settings);
   return settings;
 }
@@ -259,4 +358,9 @@ module.exports = {
   usedBodies,
   getSettings,
   saveSettings,
+  previewPost,
+  checkedPost,
+  getAutosave,
+  setAutosave,
+  deleteAutosave,
 };
